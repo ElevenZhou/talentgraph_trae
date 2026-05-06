@@ -1,0 +1,7 @@
+{
+  "/page": "app/page.js",
+  "/converter/page": "app/converter/page.js",
+  "/graph/[id]/page": "app/graph/[id]/page.js",
+  "/matching/[id]/page": "app/matching/[id]/page.js",
+  "/login/page": "app/login/page.js"
+}
