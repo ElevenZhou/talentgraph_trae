@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { resumeDb } from '@/lib/db'
+import { getDemoResumeRows } from '@/data/demoTalents'
 
 export async function GET(req: Request) {
   try {
@@ -10,6 +11,10 @@ export async function GET(req: Request) {
     }
 
     const resumes = resumeDb.findByUserId(token.sub as string)
+    if (resumes.length === 0) {
+      return NextResponse.json({ resumes: getDemoResumeRows(token.sub as string), isDemoSeed: true })
+    }
+
     return NextResponse.json({ resumes })
   } catch (error) {
     console.error('Fetch resumes error:', error)

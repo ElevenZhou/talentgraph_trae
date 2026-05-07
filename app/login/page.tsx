@@ -115,7 +115,7 @@ export default function LoginPage() {
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
-              职场引力场
+              人才引力场
             </span>
           </div>
           <p className="text-slate-400">AI 原生人才图谱平台</p>

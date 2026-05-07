@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth/next'
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { userDb } from '@/lib/db'
-import { ArrowRight, Upload, Network, GitBranch, Shield } from 'lucide-react'
+import { ArrowRight, Upload, Network, GitBranch, Shield, Sparkles, Briefcase, GraduationCap } from 'lucide-react'
 
 const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -72,7 +72,7 @@ export default async function Home() {
 
         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
           <span className="bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 bg-clip-text text-transparent">
-            职场引力场
+            人才引力场
           </span>
         </h1>
         
@@ -84,13 +84,50 @@ export default async function Home() {
           让人才不再投递，让项目主动靠近
         </p>
 
-        <a
-          href={session ? '/converter' : '/login'}
-          className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl text-white font-semibold text-lg hover:opacity-90 transition-all hover:scale-105 glow"
-        >
-          {session ? '开始创建图谱' : '登录后体验'}
-          <ArrowRight className="w-5 h-5" />
-        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href="/matching/demo-product"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl text-white font-semibold text-lg hover:opacity-90 transition-all hover:scale-105 glow"
+          >
+            <Sparkles className="w-5 h-5" />
+            30 秒体验 Demo
+          </a>
+          <a
+            href={session ? '/converter' : '/login'}
+            className="inline-flex items-center gap-3 px-8 py-4 border border-primary-500/50 rounded-xl text-primary-300 font-semibold text-lg hover:bg-primary-500/10 transition-all"
+          >
+            {session ? '上传我的简历' : '登录后上传'}
+            <ArrowRight className="w-5 h-5" />
+          </a>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto mt-10 text-left">
+          {[
+            { href: '/matching/demo-product', icon: Sparkles, title: 'AI 产品经理', desc: '体验产品岗、AI 应用岗的相对匹配排序' },
+            { href: '/matching/demo-dev', icon: Briefcase, title: '全栈工程师', desc: '体验前端、全栈和工程化岗位推荐' },
+            { href: '/matching/demo-student', icon: GraduationCap, title: '应届/实习生', desc: '体验低经验候选人的岗位适配判断' }
+          ].map((demo) => {
+            const Icon = demo.icon
+            return (
+              <a
+                key={demo.href}
+                href={demo.href}
+                className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-primary-500/50 hover:bg-slate-800/70 transition-all group"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <Icon className="w-5 h-5 text-primary-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-200">{demo.title}</p>
+                    <p className="text-xs text-primary-400">无需上传，直接体验</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-400">{demo.desc}</p>
+              </a>
+            )
+          })}
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">

@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { Globe, Bot, Code, Link2, Key, Copy, Check, Loader2, AlertCircle } from 'lucide-react'
 import TalentGraphVisualization from '../../../components/TalentGraphVisualization'
 import { TalentGraphData } from '../../../types'
+import { findDemoTalent } from '../../../data/demoTalents'
 
 const demoTalent: TalentGraphData = {
   id: 'demo',
@@ -64,15 +65,18 @@ export default function GraphViewPage() {
   const router = useRouter()
   const { data: session } = useSession()
   const [copied, setCopied] = useState(false)
+  const [handoffCopied, setHandoffCopied] = useState(false)
   const [talentData, setTalentData] = useState<TalentGraphData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const talentId = Array.isArray(id) ? id[0] : id
   
   const view = searchParams?.get('view') || 'human'
 
   useEffect(() => {
-    if (id === 'demo') {
-      setTalentData(demoTalent)
+    const demo = findDemoTalent(String(talentId))
+    if (id === 'demo' || demo) {
+      setTalentData(demo || demoTalent)
       return
     }
 
@@ -81,7 +85,7 @@ export default function GraphViewPage() {
       setError('')
       try {
         const token = searchParams?.get('token')
-        const url = new URL(`/api/resumes/${id}`, window.location.origin)
+        const url = new URL(`/api/resumes/${talentId}`, window.location.origin)
         if (token) {
           url.searchParams.set('token', token)
         }
@@ -100,10 +104,10 @@ export default function GraphViewPage() {
     }
 
     fetchTalentData()
-  }, [id, searchParams])
+  }, [id, talentId, searchParams])
 
   // 如果没有登录且没有分享 token，显示登录提示
-  if (!session && !searchParams?.get('token') && id !== 'demo') {
+  if (!session && !searchParams?.get('token') && id !== 'demo' && !findDemoTalent(String(talentId))) {
     return (
       <div className="py-16 text-center">
         <AlertCircle className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
@@ -145,6 +149,40 @@ export default function GraphViewPage() {
   }
 
   const talent = talentData || demoTalent
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const structuredJsonPageUrl = talent.agentMeta.structuredJsonUrl.startsWith('http')
+    ? talent.agentMeta.structuredJsonUrl
+    : `${origin}${talent.agentMeta.structuredJsonUrl || `/graph/${id}?view=json`}`
+  const agentProfileUrl = talent.agentMeta.agentProfileUrl.startsWith('http')
+    ? talent.agentMeta.agentProfileUrl
+    : `${origin}${talent.agentMeta.agentProfileUrl || `/graph/${id}?view=agent`}`
+  const structuredJsonApiUrl = `${origin}/api/resumes/${talent.id || talentId}`
+  const encodedToken = encodeURIComponent(talent.agentMeta.accessToken)
+  const jsonUrlWithToken = `${structuredJsonApiUrl}?token=${encodedToken}`
+  const openClawHandoff = `您好，我是 ${talent.identity.name}，目前关注 ${talent.identity.role} 相关机会。
+
+我把自己的经历整理成了一份 Agent 可读的人才图谱，方便您或团队用 OpenClaw 快速了解我的能力结构、项目经验和适配边界。相比普通简历，这份图谱会把能力、证据和风险点拆开呈现，便于做更客观的判断。
+
+如果您方便，可以把下面这段内容交给 OpenClaw 读取和分析：
+
+人才图谱 API：
+${jsonUrlWithToken}
+
+请 OpenClaw 帮您完成：
+1. 自动读取 JSON，理解我的身份背景、能力结构、经历证据、能力边界和项目偏好。
+2. 如果您有具体岗位或项目需求，请结合需求判断我和该机会的相对适配度。
+3. 分析时请只基于图谱内授权字段，不推断未授权隐私，也不替我承诺接受邀约。
+4. 我希望结论尽量客观：合适的地方请直接指出，不足或风险也请明确说明。
+
+请按这个结构反馈：
+- 一句话结论
+- 适配度：高 / 中高 / 中 / 偏低
+- 核心匹配点
+- 主要风险或缺口
+- 建议追问的问题
+- 是否建议进入下一步沟通
+
+如果分析结果显示匹配度不高，也没关系。我更希望双方在早期就基于清晰证据判断是否值得继续沟通，避免浪费彼此时间。`
 
   const copyShareLink = () => {
     const url = new URL(window.location.href)
@@ -152,6 +190,12 @@ export default function GraphViewPage() {
     navigator.clipboard.writeText(url.toString())
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const copyOpenClawHandoff = () => {
+    navigator.clipboard.writeText(openClawHandoff)
+    setHandoffCopied(true)
+    setTimeout(() => setHandoffCopied(false), 2000)
   }
 
   const tabs = [
@@ -266,8 +310,8 @@ export default function GraphViewPage() {
           <div className="flex items-center gap-3 mb-6 p-4 rounded-xl bg-primary-500/10 border border-primary-500/30">
             <Bot className="w-6 h-6 text-primary-400" />
             <div>
-              <h3 className="font-semibold text-primary-400">AI Agent 端点信息</h3>
-              <p className="text-sm text-slate-400">提供给 Agent 的标准化入口，支持自动读取和匹配评估</p>
+              <h3 className="font-semibold text-primary-400">发给对方的 Agent 使用包</h3>
+              <p className="text-sm text-slate-400">把下面的内容发给对方，对方粘到 OpenClaw 后即可自动读取、理解并给出匹配结论</p>
             </div>
           </div>
 
@@ -305,12 +349,119 @@ export default function GraphViewPage() {
                 <p className="text-sm text-slate-300 font-mono break-all">{talent.agentMeta.agentProfileUrl}</p>
               </div>
               <div className="p-3 rounded-lg bg-slate-900/50">
-                <span className="text-xs text-slate-500">Structured JSON URL</span>
-                <p className="text-sm text-slate-300 font-mono break-all">{talent.agentMeta.structuredJsonUrl}</p>
+                <span className="text-xs text-slate-500">Structured JSON API</span>
+                <p className="text-sm text-slate-300 font-mono break-all">{structuredJsonApiUrl}</p>
               </div>
               <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                 <span className="text-xs text-yellow-500">Agent Instructions</span>
                 <p className="text-sm text-yellow-400 mt-1">{talent.agentMeta.instructions}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid lg:grid-cols-[1fr_1.2fr] gap-6">
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/70">
+                <h4 className="font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-primary-400" />
+                  对方怎么使用
+                </h4>
+                <ol className="space-y-3 text-sm text-slate-300">
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-500/20 text-xs font-bold text-primary-300">1</span>
+                    <span>你把“OpenClaw 交付文本”发给对方，也可以附上 Agent 视图链接供人工核对。</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-500/20 text-xs font-bold text-primary-300">2</span>
+                    <span>对方把这段文本粘到 OpenClaw，OpenClaw 会按 API 自动读取 JSON 图谱。</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-500/20 text-xs font-bold text-primary-300">3</span>
+                    <span>OpenClaw 结合对方的岗位或项目需求，输出适配度、证据、风险和下一步建议。</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/70">
+                <h4 className="font-semibold text-slate-100 mb-3">OpenClaw 会重点学习什么</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    ['identity', '候选人身份'],
+                    ['capabilities', '核心能力图谱'],
+                    ['evidence', '经历与证据链'],
+                    ['boundaries', '能力边界'],
+                    ['matching', '适配偏好'],
+                    ['agentMeta', '权限与使用指令']
+                  ].map(([field, desc]) => (
+                    <div key={field} className="rounded-lg bg-slate-950/60 p-3 border border-slate-800">
+                      <code className="text-primary-300">{field}</code>
+                      <p className="text-slate-500 mt-1">{desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/30">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h4 className="font-semibold text-primary-300 flex items-center gap-2">
+                    <Copy className="w-4 h-4" />
+                    OpenClaw 交付文本
+                  </h4>
+                  <button
+                    onClick={copyOpenClawHandoff}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-500/20 text-primary-200 hover:bg-primary-500/30 transition-colors text-xs"
+                  >
+                    {handoffCopied ? <Check className="w-3.5 h-3.5 text-green-300" /> : <Copy className="w-3.5 h-3.5" />}
+                    {handoffCopied ? '已复制' : '复制给对方'}
+                  </button>
+                </div>
+                <pre className="p-3 rounded-lg bg-slate-950 overflow-auto text-xs text-slate-300 font-mono border border-slate-800 whitespace-pre-wrap">{openClawHandoff}</pre>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/70">
+                <h4 className="font-semibold text-slate-100 mb-3 flex items-center gap-2">
+                  <Code className="w-4 h-4 text-accent-400" />
+                  技术调用案例
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">读取结构化档案</p>
+                    <pre className="p-3 rounded-lg bg-slate-950 overflow-auto text-xs text-slate-300 font-mono border border-slate-800">{`curl "${jsonUrlWithToken}"`}</pre>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2">浏览器 / JavaScript Agent</p>
+                    <pre className="p-3 rounded-lg bg-slate-950 overflow-auto text-xs text-slate-300 font-mono border border-slate-800">{`const payload = await fetch("${jsonUrlWithToken}")
+  .then(res => res.json())
+const profile = payload.data
+
+const prompt = \`
+请根据 profile.capabilities、profile.evidence、
+profile.boundaries 和项目需求，判断候选人是否适合。
+输出：匹配度、核心优势、能力差距、风险、协作建议。
+\``}</pre>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+                <h4 className="font-semibold text-yellow-400 mb-2">OpenClaw 应返回什么</h4>
+                <ul className="space-y-1 text-sm text-yellow-100/80">
+                  <li>• 一句话判断：这个人是否相对合适。</li>
+                  <li>• 适配度分层：高 / 中高 / 中 / 偏低。</li>
+                  <li>• 证据解释：哪些经历支撑这个判断。</li>
+                  <li>• 风险与缺口：哪些能力不能默认满足。</li>
+                  <li>• 下一步建议：建议追问什么，是否进入沟通。</li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-500/30">
+                <p className="text-sm text-slate-300">
+                  对外可把这个入口理解为：<span className="text-primary-300 font-semibold">你发出去的不是一份普通简历，而是一份能被 OpenClaw 自动读取、学习和判断适配度的人才接口。</span>
+                </p>
+                <p className="text-xs text-slate-500 mt-2 break-all">Agent Profile: {agentProfileUrl}</p>
+                <p className="text-xs text-slate-500 mt-1 break-all">JSON View: {structuredJsonPageUrl}</p>
               </div>
             </div>
           </div>

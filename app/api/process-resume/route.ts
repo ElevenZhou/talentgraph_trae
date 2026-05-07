@@ -114,13 +114,24 @@ export async function POST(req: Request) {
         const talentId = 'talent-' + Date.now()
         logger.info('ProcessResume', `创建人才数据 ID: ${talentId}`)
         sendProgress('正在保存数据...')
+        const importedAt = new Date()
+        const importedAtLabel = importedAt.toLocaleString('zh-CN', {
+          timeZone: 'Asia/Shanghai',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).replace(/\//g, '-')
+        const resumeTitle = `${result.identity?.name || '未命名人才'} ${importedAtLabel}`
 
         const talentData = {
           id: talentId,
           userId: token.sub,
           ...result,
           rawResume: resumeText,
-          createdAt: new Date().toISOString(),
+          createdAt: importedAt.toISOString(),
           agentMeta: {
             accessToken: 'token-' + Math.random().toString(36).substr(2, 9),
             permissionScope: ['read', 'match', 'evaluate'],
@@ -139,6 +150,7 @@ export async function POST(req: Request) {
           resumeDb.create({
             id: talentId,
             user_id: token.sub,
+            title: resumeTitle,
             talent_data: talentDataJson,
             status: 'approved'
           })

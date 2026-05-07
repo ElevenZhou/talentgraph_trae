@@ -32,7 +32,7 @@ export default function Layout({ children }: LayoutProps) {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-lg bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
-                职场引力场
+                人才引力场
               </span>
               <span className="text-xs text-slate-500 ml-2">TalentGraph</span>
             </Link>
@@ -88,13 +88,13 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main key={pathname} className="page-enter min-h-[calc(100vh-12rem)] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
 
       <footer className="border-t border-slate-700/50 mt-20 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-500 text-sm">
-          <p className="mb-2">职场引力场 TalentGraph · AI 原生人才图谱平台</p>
+          <p className="mb-2">人才引力场 TalentGraph · AI 原生人才图谱平台</p>
           <p className="text-primary-400 font-medium">让人才不再投递，让项目主动靠近</p>
         </div>
       </footer>

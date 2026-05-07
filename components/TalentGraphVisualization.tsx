@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import { TalentGraphData, GraphNode, GraphLink } from '@/types'
 
@@ -10,9 +10,79 @@ interface Props {
   height?: number;
 }
 
+type RichNode = GraphNode & {
+  score?: number
+  size?: number
+  color?: string
+  isCore?: boolean
+  evidenceCount?: number
+  description?: string
+  rawType?: string
+  targetX?: number
+  targetY?: number
+}
+
+type RichLink = GraphLink & {
+  sourceId: string
+  targetId: string
+  width: number
+  color: string
+  kind: 'core' | 'identity' | 'evidence'
+}
+
+const CATEGORY_META: Record<string, { color: string; label: string; angle: number }> = {
+  产品: { color: '#38bdf8', label: '产品能力', angle: -150 },
+  技术: { color: '#2dd4bf', label: '技术能力', angle: -28 },
+  分析: { color: '#f59e0b', label: '分析能力', angle: 150 },
+  协作: { color: '#fb7185', label: '协作能力', angle: 35 },
+  管理: { color: '#22c55e', label: '管理能力', angle: 92 },
+  工具: { color: '#818cf8', label: '工具能力', angle: -88 },
+  其他: { color: '#94a3b8', label: '其他能力', angle: 180 }
+}
+
+const EVIDENCE_COLORS: Record<string, string> = {
+  company: '#a78bfa',
+  project: '#f472b6',
+  education: '#34d399',
+  certificate: '#fb923c',
+  portfolio: '#2dd4bf'
+}
+
+function normalizeCategory(category?: string) {
+  if (!category) return '其他'
+  if (CATEGORY_META[category]) return category
+  if (/产品|需求|用户|增长|运营|策划|设计/.test(category)) return '产品'
+  if (/技术|开发|前端|后端|算法|工程/.test(category)) return '技术'
+  if (/数据|分析|金融|量化|风控/.test(category)) return '分析'
+  if (/协作|沟通|团队/.test(category)) return '协作'
+  if (/管理|项目/.test(category)) return '管理'
+  if (/工具|运维|部署/.test(category)) return '工具'
+  return '其他'
+}
+
+function capabilityScore(cap: TalentGraphData['capabilities'][number]) {
+  const strength = cap.strength ?? (cap.level === 'expert' ? 82 : cap.level === 'strong' ? 68 : cap.level === 'moderate' ? 48 : 30)
+  const years = Math.min((cap.years ?? 1) / 6, 1) * 100
+  const projects = Math.min((cap.projectCount ?? cap.evidenceIds.length) / 10, 1) * 100
+  const evidence = Math.min(cap.evidenceIds.length / 3, 1) * 100
+  const quality = ((cap.qualityScore ?? 6) / 10) * 100
+  return Math.round(strength * 0.46 + years * 0.16 + projects * 0.14 + evidence * 0.12 + quality * 0.12)
+}
+
+function shortLabel(label: string, max = 7) {
+  return label.length > max ? `${label.slice(0, max)}…` : label
+}
+
 export default function TalentGraphVisualization({ data, width = 800, height = 700 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const [selectedNode, setSelectedNode] = useState<{ node: GraphNode; capability?: typeof data.capabilities[0] } | null>(null)
+  const [selectedNode, setSelectedNode] = useState<{ node: RichNode; capability?: typeof data.capabilities[0]; evidence?: typeof data.evidence[0] } | null>(null)
+
+  const coreCapabilities = useMemo(() => {
+    return [...data.capabilities]
+      .map(cap => ({ cap, score: capabilityScore(cap) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+  }, [data.capabilities])
 
   useEffect(() => {
     if (!svgRef.current) return
@@ -20,15 +90,37 @@ export default function TalentGraphVisualization({ data, width = 800, height = 7
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    const nodes: GraphNode[] = []
-    const links: GraphLink[] = []
+    const centerX = width / 2
+    const centerY = height / 2 + 8
+    const clusterRadius = Math.min(width, height) * 0.34
+    const evidenceRadius = Math.min(width, height) * 0.47
+    const nodes: RichNode[] = []
+    const links: RichLink[] = []
 
-    nodes.push({
+    const categoryAnchor = (category: string, radius = clusterRadius) => {
+      const meta = CATEGORY_META[normalizeCategory(category)] || CATEGORY_META.其他
+      const rad = (meta.angle / 180) * Math.PI
+      return {
+        x: centerX + Math.cos(rad) * radius,
+        y: centerY + Math.sin(rad) * radius,
+        meta
+      }
+    }
+
+    const addNode = (node: RichNode) => {
+      nodes.push({ ...node, targetX: node.x, targetY: node.y })
+    }
+
+    addNode({
       id: 'center',
       label: data.identity.name,
       layer: 'center',
-      x: width / 2,
-      y: height / 2
+      x: centerX,
+      y: centerY,
+      size: 46,
+      score: 100,
+      color: '#38bdf8',
+      isCore: true
     })
 
     const identityItems = [
@@ -37,312 +129,430 @@ export default function TalentGraphVisualization({ data, width = 800, height = 7
       { label: data.identity.totalExperienceYears ? `${data.identity.totalExperienceYears}年经验` : (data.identity.availability === 'looking' ? '积极求职' : data.identity.availability === 'open' ? '开放机会' : '暂不考虑'), category: data.identity.totalExperienceYears ? '经验' : '状态' }
     ]
 
-    identityItems.forEach((item, i) => {
-      const angle = (i / identityItems.length) * 2 * Math.PI - Math.PI / 2
-      const radius = 100
-      nodes.push({
-        id: `identity-${i}`,
+    identityItems.forEach((item, index) => {
+      const angle = (index / identityItems.length) * Math.PI * 2 - Math.PI / 2
+      const radius = 98
+      const nodeId = `identity-${index}`
+      addNode({
+        id: nodeId,
         label: item.label,
         layer: 'identity',
         category: item.category,
-        x: width / 2 + Math.cos(angle) * radius,
-        y: height / 2 + Math.sin(angle) * radius
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+        size: 25,
+        score: 70,
+        color: '#0ea5e9'
       })
-      links.push({ source: 'center', target: `identity-${i}`, strength: 0.9 })
+      links.push({ source: 'center', target: nodeId, sourceId: 'center', targetId: nodeId, strength: 0.8, width: 2, color: '#0ea5e9', kind: 'identity' })
     })
 
-    const capabilitiesRadius = 200
-    const capPerLayer = Math.min(data.capabilities.length, 12)
-    data.capabilities.slice(0, capPerLayer).forEach((cap, i) => {
-      const angle = (i / capPerLayer) * 2 * Math.PI
-      const strength = cap.strength || 50
-      const radius = capabilitiesRadius + (100 - strength) * 0.3
-      nodes.push({
-        id: cap.id,
-        label: cap.name,
-        layer: 'capability',
-        category: cap.category,
-        level: cap.strength || (cap.level === 'expert' ? 80 : cap.level === 'strong' ? 60 : cap.level === 'moderate' ? 40 : 20),
-        x: width / 2 + Math.cos(angle) * radius,
-        y: height / 2 + Math.sin(angle) * radius
-      })
-      links.push({ source: 'center', target: cap.id, strength: Math.min(0.9, (cap.strength || 50) / 100) })
+    const categoryBuckets = new Map<string, typeof data.capabilities>()
+    data.capabilities.forEach(cap => {
+      const category = normalizeCategory(cap.category)
+      categoryBuckets.set(category, [...(categoryBuckets.get(category) || []), cap])
     })
 
-    const evidenceRadius = 310
-    const evidencePerLayer = Math.min(data.evidence.length, 15)
-    data.evidence.slice(0, evidencePerLayer).forEach((evi, i) => {
-      const angle = (i / evidencePerLayer) * 2 * Math.PI + Math.PI / evidencePerLayer
-      const impact = evi.impactScore || 5
-      nodes.push({
+    const categoryScores = new Map<string, number>()
+    data.capabilities.forEach(cap => {
+      const category = normalizeCategory(cap.category)
+      categoryScores.set(category, (categoryScores.get(category) || 0) + capabilityScore(cap))
+    })
+
+    categoryBuckets.forEach((caps, category) => {
+      const anchor = categoryAnchor(category)
+      const sortedCaps = caps.map(cap => ({ cap, score: capabilityScore(cap) })).sort((a, b) => b.score - a.score)
+      sortedCaps.forEach(({ cap, score }, index) => {
+        const perRing = 5
+        const ring = Math.floor(index / perRing)
+        const angle = ((index % perRing) / perRing) * Math.PI * 2 + ring * 0.55
+        const localRadius = index === 0 ? 0 : 54 + ring * 58
+        const x = anchor.x + Math.cos(angle) * localRadius
+        const y = anchor.y + Math.sin(angle) * localRadius
+        const size = 14 + (score / 100) * 22
+        const isCore = coreCapabilities.some(item => item.cap.id === cap.id) || score >= 82
+
+        addNode({
+          id: cap.id,
+          label: cap.name,
+          layer: 'capability',
+          category,
+          level: cap.strength ?? score,
+          score,
+          size,
+          color: anchor.meta.color,
+          isCore,
+          evidenceCount: cap.evidenceIds.length,
+          description: cap.description,
+          x,
+          y
+        })
+        links.push({
+          source: 'center',
+          target: cap.id,
+          sourceId: 'center',
+          targetId: cap.id,
+          strength: isCore ? Math.max(0.48, score / 100) : 0.18,
+          width: isCore ? 1.4 + (score / 100) * 2.2 : 0.8,
+          color: anchor.meta.color,
+          kind: 'core'
+        })
+      })
+    })
+
+    data.evidence.forEach((evi, index) => {
+      const supportedCaps = data.capabilities.filter(cap =>
+        evi.capabilities.some(capName => cap.name === capName || capName.includes(cap.name) || cap.name.includes(capName))
+      )
+      const mainCap = supportedCaps[0]
+      const anchor = mainCap ? categoryAnchor(mainCap.category, evidenceRadius) : { x: centerX, y: centerY + evidenceRadius, meta: CATEGORY_META.其他 }
+      const impact = evi.impactScore ?? 5
+      const fanIndex = index % 4
+      const fanRing = Math.floor(index / 4)
+      const angle = ((fanIndex / 4) * Math.PI * 2) + fanRing * 0.72
+      const spread = 42 + fanRing * 48
+      const size = 13 + impact * 1.4 + Math.min(evi.capabilities.length, 4) * 1.6
+
+      addNode({
         id: evi.id,
         label: evi.title,
         layer: 'evidence',
         category: evi.type,
+        rawType: evi.type,
         level: impact,
-        x: width / 2 + Math.cos(angle) * (evidenceRadius + (10 - impact) * 3),
-        y: height / 2 + Math.sin(angle) * (evidenceRadius + (10 - impact) * 3)
+        score: impact * 10,
+        size,
+        color: EVIDENCE_COLORS[evi.type] || '#64748b',
+        description: evi.description,
+        x: anchor.x + Math.cos(angle) * spread,
+        y: anchor.y + Math.sin(angle) * spread
       })
 
-      evi.capabilities.forEach(capName => {
-        const foundCap = data.capabilities.find(c => c.name === capName || capName.includes(c.name) || c.name.includes(capName))
-        if (foundCap) {
-          const capStrength = foundCap.strength || 50
-          links.push({ source: foundCap.id, target: evi.id, strength: (capStrength / 100) * 0.7 })
-        } else {
-          links.push({ source: 'center', target: evi.id, strength: 0.3 })
-        }
+      if (supportedCaps.length === 0) {
+        links.push({ source: 'center', target: evi.id, sourceId: 'center', targetId: evi.id, strength: 0.16, width: 0.8, color: '#64748b', kind: 'evidence' })
+      }
+
+      supportedCaps.forEach(cap => {
+        const score = capabilityScore(cap)
+        const linkStrength = Math.min(0.95, 0.25 + (impact / 10) * 0.24 + (score / 100) * 0.24)
+        links.push({
+          source: cap.id,
+          target: evi.id,
+          sourceId: cap.id,
+          targetId: evi.id,
+          strength: linkStrength,
+          width: 0.8 + linkStrength * 2.4,
+          color: categoryAnchor(cap.category).meta.color,
+          kind: 'evidence'
+        })
       })
-      if (evi.capabilities.length === 0) {
-        links.push({ source: 'center', target: evi.id, strength: 0.3 })
+    })
+
+    nodes.forEach(node => {
+      if (node.layer === 'center' || node.layer === 'identity') {
+        ;(node as any).fx = node.x
+        ;(node as any).fy = node.y
       }
     })
 
-    const defs = svg.append('defs')
-    
-    const gradient = defs.append('radialGradient').attr('id', 'centerGradient')
-    gradient.append('stop').attr('offset', '0%').attr('stop-color', '#0ea5e9')
-    gradient.append('stop').attr('offset', '100%').attr('stop-color', '#d946ef')
+    const simulation = d3.forceSimulation(nodes as d3.SimulationNodeDatum[])
+      .force('x', d3.forceX((d: any) => d.targetX).strength((d: any) => d.layer === 'capability' ? 0.25 : d.layer === 'evidence' ? 0.18 : 0.5))
+      .force('y', d3.forceY((d: any) => d.targetY).strength((d: any) => d.layer === 'capability' ? 0.25 : d.layer === 'evidence' ? 0.18 : 0.5))
+      .force('charge', d3.forceManyBody().strength((d: any) => d.layer === 'capability' ? -34 : d.layer === 'evidence' ? -20 : -8))
+      .force('collision', d3.forceCollide().radius((d: any) => (d.size || 20) + (d.layer === 'capability' && (d.isCore || (d.score || 0) >= 78) ? 26 : 12)).iterations(3))
+      .stop()
 
-    const glowFilter = defs.append('filter').attr('id', 'glow').attr('x', '-50%').attr('y', '-50%').attr('width', '200%').attr('height', '200%')
-    glowFilter.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'coloredBlur')
+    for (let i = 0; i < 180; i++) simulation.tick()
+
+    const nodeById = new Map(nodes.map(node => [node.id, node]))
+    const defs = svg.append('defs')
+
+    const centerGradient = defs.append('radialGradient').attr('id', 'centerGradient')
+    centerGradient.append('stop').attr('offset', '0%').attr('stop-color', '#38bdf8')
+    centerGradient.append('stop').attr('offset', '58%').attr('stop-color', '#0ea5e9')
+    centerGradient.append('stop').attr('offset', '100%').attr('stop-color', '#d946ef')
+
+    const glowFilter = defs.append('filter').attr('id', 'glow').attr('x', '-80%').attr('y', '-80%').attr('width', '260%').attr('height', '260%')
+    glowFilter.append('feGaussianBlur').attr('stdDeviation', '4').attr('result', 'coloredBlur')
     const feMerge = glowFilter.append('feMerge')
     feMerge.append('feMergeNode').attr('in', 'coloredBlur')
     feMerge.append('feMergeNode').attr('in', 'SourceGraphic')
 
-    const simulation = d3.forceSimulation(nodes as d3.SimulationNodeDatum[])
-      .force('link', d3.forceLink(links).id((d: any) => d.id).distance(50).strength(0.1))
-      .force('charge', d3.forceManyBody().strength(-200))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius(50))
-
-    for (let i = 0; i < 100; i++) {
-      simulation.tick()
-    }
-    simulation.stop()
-
-    const layerRadii = [80, 180, 280]
-    layerRadii.forEach((radius, i) => {
-      svg.append('circle')
-        .attr('cx', width / 2)
-        .attr('cy', height / 2)
+    const background = svg.append('g').attr('opacity', 0.9)
+    Array.from(categoryScores.entries()).forEach(([category, score]) => {
+      const anchor = categoryAnchor(category)
+      const intensity = Math.min(1, score / 360)
+      const radius = 70 + intensity * 44
+      background.append('circle')
+        .attr('cx', anchor.x)
+        .attr('cy', anchor.y)
         .attr('r', radius)
-        .attr('fill', 'none')
-        .attr('stroke', i === 0 ? '#0ea5e9' : i === 1 ? '#d946ef' : '#22c55e')
-        .attr('stroke-opacity', 0.15)
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '5,5')
+        .attr('fill', anchor.meta.color)
+        .attr('fill-opacity', 0.035 + intensity * 0.055)
+        .attr('stroke', anchor.meta.color)
+        .attr('stroke-opacity', 0.10 + intensity * 0.12)
+        .attr('stroke-width', 1.2)
+        .attr('stroke-dasharray', '7,11')
+      background.append('text')
+        .attr('x', anchor.x)
+        .attr('y', anchor.y - radius - 8)
+        .attr('text-anchor', 'middle')
+        .attr('fill', anchor.meta.color)
+        .attr('font-size', 12)
+        .attr('font-weight', 800)
+        .attr('fill-opacity', 0.75)
+        .text(anchor.meta.label)
     })
 
+    ;[100, 205, 315].forEach((radius, index) => {
+      svg.append('circle')
+        .attr('cx', centerX)
+        .attr('cy', centerY)
+        .attr('r', radius)
+        .attr('fill', 'none')
+        .attr('stroke', index === 0 ? '#38bdf8' : index === 1 ? '#d946ef' : '#22c55e')
+        .attr('stroke-opacity', 0.09)
+        .attr('stroke-width', 1.2)
+        .attr('stroke-dasharray', '5,9')
+    })
+
+    const linkBaseOpacity = (link: RichLink) => {
+      if (link.kind === 'identity') return 0.32
+      if (link.kind === 'core') return link.strength > 0.45 ? 0.20 : 0.035
+      return 0.10
+    }
+
     const linkElements = svg.append('g')
+      .attr('class', 'links')
       .selectAll('line')
       .data(links)
       .enter()
       .append('line')
-      .attr('class', 'connection-line')
-      .attr('stroke', (d: GraphLink) => d.strength > 0.6 ? '#0ea5e9' : d.strength > 0.4 ? '#d946ef' : '#475569')
-      .attr('stroke-opacity', (d: GraphLink) => d.strength * 0.7)
-      .attr('stroke-width', (d: GraphLink) => Math.max(1, d.strength * 4))
+      .attr('x1', d => nodeById.get(d.sourceId)?.x || centerX)
+      .attr('y1', d => nodeById.get(d.sourceId)?.y || centerY)
+      .attr('x2', d => nodeById.get(d.targetId)?.x || centerX)
+      .attr('y2', d => nodeById.get(d.targetId)?.y || centerY)
+      .attr('stroke', d => d.color)
+      .attr('stroke-opacity', d => linkBaseOpacity(d))
+      .attr('stroke-width', d => d.width)
+      .attr('stroke-linecap', 'round')
 
     const nodeGroups = svg.append('g')
+      .attr('class', 'nodes')
       .selectAll('g')
       .data(nodes)
       .enter()
       .append('g')
-      .attr('transform', (d: any) => `translate(${d.x}, ${d.y})`)
+      .attr('transform', d => `translate(${d.x}, ${d.y})`)
       .style('cursor', 'pointer')
-      .on('mouseover', (event: any, d: GraphNode) => {
-        d3.select(event.currentTarget).transition().duration(200).attr('transform', `translate(${d.x}, ${d.y}) scale(1.15)`)
+      .on('mouseover', (event: any, d: RichNode) => {
+        const relatedIds = new Set<string>([d.id])
+        links.forEach(link => {
+          if (link.sourceId === d.id || link.targetId === d.id) {
+            relatedIds.add(link.sourceId)
+            relatedIds.add(link.targetId)
+          }
+        })
+        linkElements
+          .transition().duration(130)
+          .attr('stroke-opacity', link => link.sourceId === d.id || link.targetId === d.id ? 0.88 : 0.025)
+          .attr('stroke-width', link => (link.sourceId === d.id || link.targetId === d.id ? link.width + 1.4 : Math.max(0.5, link.width * 0.42)))
+        nodeGroups
+          .transition().duration(130)
+          .attr('opacity', node => relatedIds.has(node.id) ? 1 : 0.25)
+        d3.select(event.currentTarget).transition().duration(150).attr('transform', `translate(${d.x}, ${d.y}) scale(1.12)`)
       })
-      .on('mouseout', (event: any, d: GraphNode) => {
-        d3.select(event.currentTarget).transition().duration(200).attr('transform', `translate(${d.x}, ${d.y}) scale(1)`)
+      .on('mouseout', (event: any, d: RichNode) => {
+        linkElements
+          .transition().duration(170)
+          .attr('stroke-opacity', link => linkBaseOpacity(link))
+          .attr('stroke-width', link => link.width)
+        nodeGroups.transition().duration(170).attr('opacity', 1)
+        d3.select(event.currentTarget).transition().duration(150).attr('transform', `translate(${d.x}, ${d.y}) scale(1)`)
       })
-      .on('click', (_, d: GraphNode) => {
-        const capability = d.layer === 'capability' 
-          ? data.capabilities.find(c => c.id === d.id) 
-          : undefined
-        setSelectedNode({ node: d, capability })
+      .on('click', (_, d: RichNode) => {
+        setSelectedNode({
+          node: d,
+          capability: d.layer === 'capability' ? data.capabilities.find(cap => cap.id === d.id) : undefined,
+          evidence: d.layer === 'evidence' ? data.evidence.find(evi => evi.id === d.id) : undefined
+        })
       })
 
-    nodeGroups.each(function(d: GraphNode) {
+    nodeGroups.each(function(d: RichNode) {
       const group = d3.select(this)
-      
+      const size = d.size || 20
+      const color = d.color || '#94a3b8'
+
+      if (d.isCore && d.layer === 'capability') {
+        group.append('circle').attr('r', size + 12).attr('fill', color).attr('fill-opacity', 0.08).attr('filter', 'url(#glow)')
+        group.append('circle').attr('r', size + 6).attr('fill', 'none').attr('stroke', color).attr('stroke-width', 1.3).attr('stroke-opacity', 0.55)
+      }
+
       if (d.layer === 'center') {
-        group.append('circle')
-          .attr('r', 45)
-          .attr('fill', 'url(#centerGradient)')
-          .attr('filter', 'url(#glow)')
-          .attr('class', 'node-pulse')
-        
-        const fontSize = d.label.length > 4 ? 14 : 16
-        group.append('text')
-          .attr('text-anchor', 'middle')
-          .attr('dy', '0.35em')
-          .attr('fill', 'white')
-          .attr('font-weight', 'bold')
-          .attr('font-size', fontSize)
-          .text(d.label)
-      } else if (d.layer === 'identity') {
-        group.append('circle')
-          .attr('r', 28)
-          .attr('fill', '#0ea5e9')
-          .attr('fill-opacity', 0.2)
-          .attr('stroke', '#0ea5e9')
-          .attr('stroke-width', 2)
-        group.append('text')
-          .attr('text-anchor', 'middle')
-          .attr('dy', '0.35em')
-          .attr('fill', '#7dd3fc')
-          .attr('font-size', 10)
-          .text(d.label.length > 6 ? d.label.slice(0, 6) + '…' : d.label)
-      } else if (d.layer === 'capability') {
-        const strength = d.level || 50
-        const size = 12 + (strength / 100) * 20
-        const opacity = 0.2 + (strength / 100) * 0.6
-        const hue = strength > 70 ? 45 : strength > 40 ? 142 : 200
-        const color = `hsl(${hue}, 80%, 50%)`
-        
-        group.append('circle')
-          .attr('r', size)
-          .attr('fill', color)
-          .attr('fill-opacity', opacity)
-          .attr('stroke', color)
-          .attr('stroke-width', 2)
-          .attr('stroke-opacity', 0.8)
-        
-        if (strength > 70) {
-          group.append('circle')
-            .attr('r', size + 4)
-            .attr('fill', 'none')
+        group.append('circle').attr('r', size).attr('fill', 'url(#centerGradient)').attr('filter', 'url(#glow)').attr('class', 'node-pulse')
+        group.append('text').attr('text-anchor', 'middle').attr('dy', '0.35em').attr('fill', 'white').attr('font-weight', 800).attr('font-size', d.label.length > 4 ? 14 : 16).text(d.label)
+        return
+      }
+
+      if (d.layer === 'identity') {
+        group.append('circle').attr('r', size).attr('fill', '#0ea5e9').attr('fill-opacity', 0.15).attr('stroke', '#38bdf8').attr('stroke-width', 1.8)
+        group.append('text').attr('text-anchor', 'middle').attr('dy', '0.35em').attr('fill', '#bae6fd').attr('font-size', 9.5).attr('font-weight', 700).text(shortLabel(d.label, 7))
+        return
+      }
+
+      if (d.layer === 'capability') {
+        const opacity = 0.18 + ((d.score || 50) / 100) * 0.36
+        group.append('circle').attr('r', size).attr('fill', color).attr('fill-opacity', opacity).attr('stroke', color).attr('stroke-width', d.isCore ? 2.6 : 1.5).attr('stroke-opacity', d.isCore ? 0.92 : 0.62)
+        group.append('text').attr('text-anchor', 'middle').attr('dy', '0.35em').attr('fill', '#f8fafc').attr('font-size', 10).attr('font-weight', 800).text(`${d.score}`)
+
+        if (d.isCore || (d.score || 0) >= 78 || (d.evidenceCount || 0) >= 2) {
+          const label = shortLabel(d.label, 9)
+          const labelWidth = Math.max(54, label.length * 11 + 14)
+          const labelY = size + 10
+          group.append('rect')
+            .attr('x', -labelWidth / 2)
+            .attr('y', labelY)
+            .attr('width', labelWidth)
+            .attr('height', 20)
+            .attr('rx', 10)
+            .attr('fill', '#020617')
+            .attr('fill-opacity', 0.76)
             .attr('stroke', color)
-            .attr('stroke-width', 1)
-            .attr('stroke-opacity', 0.3)
+            .attr('stroke-opacity', 0.32)
+          group.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('y', labelY + 14)
+            .attr('fill', '#e2e8f0')
+            .attr('font-size', 10)
+            .attr('font-weight', 700)
+            .text(label)
         }
-        
-        group.append('text')
-          .attr('text-anchor', 'middle')
-          .attr('dy', '0.35em')
-          .attr('fill', '#e2e8f0')
-          .attr('font-size', Math.max(8, 11 - (strength > 70 ? 2 : 0)))
-          .text(d.label.length > 6 ? d.label.slice(0, 6) + '…' : d.label)
+        return
+      }
+
+      const impact = d.level || 5
+      if (d.rawType === 'company') {
+        group.append('rect')
+          .attr('x', -size * 0.9)
+          .attr('y', -size * 0.56)
+          .attr('width', size * 1.8)
+          .attr('height', size * 1.12)
+          .attr('rx', 9)
+          .attr('fill', color)
+          .attr('fill-opacity', 0.13 + impact * 0.012)
+          .attr('stroke', color)
+          .attr('stroke-width', 1.1 + impact * 0.08)
+      } else if (d.rawType === 'project') {
+        group.append('path')
+          .attr('d', `M0,${-size} L${size},0 L0,${size} L${-size},0 Z`)
+          .attr('fill', color)
+          .attr('fill-opacity', 0.13 + impact * 0.012)
+          .attr('stroke', color)
+          .attr('stroke-width', 1.1 + impact * 0.08)
       } else {
-        const impact = d.level || 5
-        const size = 15 + impact * 1.5
-        const opacity = 0.15 + (impact / 10) * 0.25
-        const colors: Record<string, string> = {
-          company: '#a78bfa', project: '#f472b6', education: '#34d399',
-          certificate: '#fb923c', portfolio: '#2dd4bf'
-        }
-        const color = colors[d.category || 'company'] || '#64748b'
-        
         group.append('circle')
           .attr('r', size)
           .attr('fill', color)
-          .attr('fill-opacity', opacity)
+          .attr('fill-opacity', 0.12 + impact * 0.012)
           .attr('stroke', color)
-          .attr('stroke-width', 1 + (impact / 10))
+          .attr('stroke-width', 1.1 + impact * 0.08)
+      }
+
+      if (impact >= 8) {
+        const label = shortLabel(d.label, 6)
         group.append('text')
           .attr('text-anchor', 'middle')
-          .attr('dy', '0.35em')
-          .attr('fill', '#94a3b8')
-          .attr('font-size', 8)
-          .text(d.label.length > 5 ? d.label.slice(0, 5) + '…' : d.label)
+          .attr('y', size + 14)
+          .attr('fill', '#cbd5e1')
+          .attr('font-size', 9)
+          .attr('font-weight', 650)
+          .text(label)
       }
     })
 
-    const legendData = [
-      { label: '中心层: 身份核心', color: '#0ea5e9' },
-      { label: '一层: 基本信息', color: '#0ea5e9' },
-      { label: '二层: 能力节点', color: '#d946ef' },
-      { label: '三层: 项目证据', color: '#22c55e' }
-    ]
-    const legend = svg.append('g').attr('transform', `translate(${width - 160}, 30)`)
-    legendData.forEach((item, i) => {
-      const g = legend.append('g').attr('transform', `translate(0, ${i * 22})`)
-      g.append('circle').attr('r', 5).attr('fill', item.color).attr('cx', 0).attr('cy', 0)
-      g.append('text').attr('x', 15).attr('y', 4).attr('fill', '#94a3b8').attr('font-size', 11).text(item.label)
-    })
-
-    const strengthLegend = svg.append('g').attr('transform', `translate(${width - 160}, 130)`)
-    strengthLegend.append('text').attr('x', 0).attr('y', 0).attr('fill', '#94a3b8').attr('font-size', 11).text('能力强度:')
-    const strengthItems = [
-      { size: 12, label: '弱', opacity: 0.3 },
-      { size: 20, label: '中', opacity: 0.5 },
-      { size: 28, label: '强', opacity: 0.8 }
-    ]
-    strengthItems.forEach((item, i) => {
-      const g = strengthLegend.append('g').attr('transform', `translate(${i * 45}, 15)`)
-      g.append('circle').attr('r', item.size / 2).attr('fill', '#fbbf24').attr('fill-opacity', item.opacity).attr('stroke', '#fbbf24').attr('stroke-opacity', 0.8)
-      g.append('text').attr('x', 0).attr('y', 20).attr('fill', '#94a3b8').attr('font-size', 10).attr('text-anchor', 'middle').text(item.label)
-    })
-
-    linkElements
-      .attr('x1', (d: any) => d.source.x)
-      .attr('y1', (d: any) => d.source.y)
-      .attr('x2', (d: any) => d.target.x)
-      .attr('y2', (d: any) => d.target.y)
-
-  }, [data, width, height])
+  }, [data, width, height, coreCapabilities])
 
   return (
     <div className="relative">
-      <svg
-        ref={svgRef}
-        width={width}
-        height={height}
-        className="mx-auto"
-      />
+      <div className="mb-4 grid gap-3 rounded-2xl border border-slate-700/70 bg-slate-900/45 p-4 backdrop-blur-xl md:grid-cols-[160px_1fr]">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary-400">Core Gravity</p>
+          <p className="mt-1 text-xs text-slate-500">核心能力不压在图上，先看摘要再读图。</p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {coreCapabilities.map(({ cap, score }, index) => (
+            <div key={cap.id} className="rounded-xl border border-slate-700/70 bg-slate-950/35 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-500/15 text-xs font-bold text-primary-300">{index + 1}</span>
+                  <span className="truncate text-sm font-semibold text-slate-100">{cap.name}</span>
+                </div>
+                <span className="text-xs font-bold text-amber-300">{score}</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-700">
+                <div className="h-full rounded-full bg-gradient-to-r from-primary-400 to-amber-300" style={{ width: `${score}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-700/60 bg-slate-950/30 px-4 py-3 text-xs text-slate-400">
+        <span className="font-semibold text-slate-200">读图方式</span>
+        <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-sky-400" />数字=能力权重</span>
+        <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-amber-400" />大节点=核心能力</span>
+        <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-rose-400" />同色=能力方向</span>
+        <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full bg-emerald-400" />悬停查看证据链</span>
+      </div>
+
+      <svg ref={svgRef} width={width} height={height} className="mx-auto" />
 
       {selectedNode && (
-        <div className="absolute top-4 left-4 max-w-xs p-4 rounded-xl bg-slate-800/95 border border-slate-600 backdrop-blur-xl">
-          <div className="flex justify-between items-start mb-2">
-            <h4 className="font-semibold text-primary-400">{selectedNode.node.label}</h4>
-            <button
-              onClick={() => setSelectedNode(null)}
-              className="text-slate-400 hover:text-slate-300"
-            >
-              ✕
-            </button>
+        <div className="absolute right-4 top-28 z-10 max-w-xs rounded-2xl border border-slate-600 bg-slate-900/95 p-4 shadow-2xl backdrop-blur-xl">
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-semibold text-primary-400">{selectedNode.node.label}</h4>
+              <p className="text-xs text-slate-500">
+                {selectedNode.node.layer === 'center' ? '核心身份' : selectedNode.node.layer === 'identity' ? '基本信息' : selectedNode.node.layer === 'capability' ? '能力节点' : '证据节点'}
+              </p>
+            </div>
+            <button onClick={() => setSelectedNode(null)} className="text-slate-400 hover:text-slate-300">✕</button>
           </div>
-          <p className="text-sm text-slate-400">
-            层级: {selectedNode.node.layer === 'center' ? '核心身份' : selectedNode.node.layer === 'identity' ? '基本信息' : selectedNode.node.layer === 'capability' ? '能力' : '项目证据'}
-          </p>
-          {selectedNode.node.category && (
-            <p className="text-sm text-slate-400">分类: {selectedNode.node.category}</p>
-          )}
+
+          {selectedNode.node.category && <p className="text-sm text-slate-400">分类: {selectedNode.node.category}</p>}
+          {selectedNode.node.score !== undefined && <p className="text-sm text-slate-400">聚集权重: <span className="font-semibold text-amber-300">{selectedNode.node.score}</span></p>}
+
           {selectedNode.capability && (
-            <div className="mt-2 pt-2 border-t border-slate-700">
+            <div className="mt-3 border-t border-slate-700 pt-3">
               {selectedNode.capability.strength !== undefined && (
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-slate-500">强度:</span>
-                  <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-green-400 to-yellow-400 transition-all"
-                      style={{ width: `${selectedNode.capability.strength}%` }}
-                    />
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-xs text-slate-500">强度</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-700">
+                    <div className="h-full bg-gradient-to-r from-green-400 to-yellow-400" style={{ width: `${selectedNode.capability.strength}%` }} />
                   </div>
-                  <span className="text-xs text-yellow-400 font-medium">{selectedNode.capability.strength}%</span>
+                  <span className="text-xs font-medium text-yellow-400">{selectedNode.capability.strength}%</span>
                 </div>
               )}
-              {selectedNode.capability.years !== undefined && (
-                <p className="text-xs text-slate-400 mt-1">经验年限: {selectedNode.capability.years}年</p>
-              )}
-              {selectedNode.capability.projectCount !== undefined && (
-                <p className="text-xs text-slate-400">项目数量: {selectedNode.capability.projectCount}个</p>
-              )}
-              {selectedNode.capability.qualityScore !== undefined && (
-                <p className="text-xs text-slate-400">质量评分: {selectedNode.capability.qualityScore}/10</p>
-              )}
-              {selectedNode.capability.description && (
-                <p className="text-xs text-slate-300 mt-2 italic">"{selectedNode.capability.description}"</p>
-              )}
+              {selectedNode.capability.years !== undefined && <p className="text-xs text-slate-400">经验年限: {selectedNode.capability.years}年</p>}
+              {selectedNode.capability.projectCount !== undefined && <p className="text-xs text-slate-400">项目数量: {selectedNode.capability.projectCount}个</p>}
+              {selectedNode.capability.qualityScore !== undefined && <p className="text-xs text-slate-400">质量评分: {selectedNode.capability.qualityScore}/10</p>}
+              <p className="mt-2 text-xs italic text-slate-300">“{selectedNode.capability.description}”</p>
+            </div>
+          )}
+
+          {selectedNode.evidence && (
+            <div className="mt-3 border-t border-slate-700 pt-3">
+              <p className="text-xs text-slate-400">机构/来源: {selectedNode.evidence.organization}</p>
+              <p className="text-xs text-slate-400">周期: {selectedNode.evidence.period}</p>
+              {selectedNode.evidence.impactScore !== undefined && <p className="text-xs text-slate-400">影响力: {selectedNode.evidence.impactScore}/10</p>}
+              <p className="mt-2 text-xs italic text-slate-300">“{selectedNode.evidence.description}”</p>
             </div>
           )}
         </div>
       )}
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-slate-500 text-sm">
-        💡 点击节点查看详情 | 节点越大、颜色越亮代表能力越强 | 连线越粗代表关联越强
+      <div className="absolute bottom-4 left-1/2 max-w-2xl -translate-x-1/2 rounded-full border border-slate-700/70 bg-slate-900/72 px-4 py-2 text-center text-xs text-slate-400 backdrop-blur-xl">
+        默认降低连线和证据标签噪音 · 悬停节点时突出相关证据链 · 点击节点查看完整说明
       </div>
     </div>
   )

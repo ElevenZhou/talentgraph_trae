@@ -37,6 +37,7 @@ function initSchema(database: Database.Database) {
     CREATE TABLE IF NOT EXISTS resumes (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
+      title TEXT,
       talent_data TEXT NOT NULL,
       status TEXT DEFAULT 'pending',
       created_at TEXT DEFAULT (datetime('now')),
@@ -48,6 +49,11 @@ function initSchema(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_resumes_status ON resumes(status);
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   `)
+
+  const resumeColumns = database.prepare('PRAGMA table_info(resumes)').all() as { name: string }[]
+  if (!resumeColumns.some(column => column.name === 'title')) {
+    database.prepare('ALTER TABLE resumes ADD COLUMN title TEXT').run()
+  }
 
   const existingUsers = database.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }
   if (existingUsers.count === 0) {
@@ -81,6 +87,7 @@ function initSchema(database: Database.Database) {
 export interface Resume {
   id: string
   user_id: string
+  title?: string | null
   talent_data: string
   status: string
   created_at: string
@@ -98,13 +105,13 @@ export interface User {
 }
 
 export const resumeDb = {
-  create(resume: { id: string; user_id: string; talent_data: string; status?: string }) {
+  create(resume: { id: string; user_id: string; title?: string; talent_data: string; status?: string }) {
     const db = getDb()
     const stmt = db.prepare(`
-      INSERT INTO resumes (id, user_id, talent_data, status)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO resumes (id, user_id, title, talent_data, status)
+      VALUES (?, ?, ?, ?, ?)
     `)
-    stmt.run(resume.id, resume.user_id, resume.talent_data, resume.status || 'pending')
+    stmt.run(resume.id, resume.user_id, resume.title || null, resume.talent_data, resume.status || 'pending')
     return resume
   },
 
@@ -134,8 +141,15 @@ export const resumeDb = {
 
   updateStatus(id: string, status: string) {
     const db = getDb()
-    const stmt = db.prepare('UPDATE resumes SET status = ?, updated_at = datetime("now") WHERE id = ?')
+    const stmt = db.prepare("UPDATE resumes SET status = ?, updated_at = datetime('now') WHERE id = ?")
     stmt.run(status, id)
+  },
+
+  updateTitle(id: string, userId: string, title: string) {
+    const db = getDb()
+    const stmt = db.prepare("UPDATE resumes SET title = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?")
+    const result = stmt.run(title, id, userId)
+    return result.changes > 0
   },
 
   count() {

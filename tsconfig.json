@@ -20,7 +20,9 @@
       "@/src/*": ["src/*"],
       "@/lib/*": ["src/lib/*"],
       "@/components/*": ["components/*"],
-      "@/types/*": ["types/*"]
+      "@/types": ["types/index.ts"],
+      "@/types/*": ["types/*"],
+      "@/data/*": ["data/*"]
     },
     "plugins": [{ "name": "next" }],
     "allowJs": true,

@@ -1330,6 +1330,555 @@ export const mockProjects: Project[] = [
       '项目交付把控'
     ],
     benefits: ['六险一金', '住房补贴', '年终奖', '股票']
+  },
+  // 应届生/实习生岗位 (10个)
+  {
+    id: 'proj-051',
+    companyName: '字节跳动',
+    industry: '互联网',
+    companySize: '10000+',
+    location: '北京',
+    jobTitle: '前端开发实习生',
+    jobType: 'internship',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 15000,
+    salaryMax: 25000,
+    requirements: [
+      { id: 'req-1', skill: 'HTML/CSS', level: 'strong', weight: 30 },
+      { id: 'req-2', skill: 'JavaScript', level: 'strong', weight: 30 },
+      { id: 'req-3', skill: 'React/Vue', level: 'moderate', weight: 25 },
+      { id: 'req-4', skill: '学习能力', level: 'strong', weight: 15 }
+    ],
+    description: '参与抖音前端项目开发，学习大厂技术栈',
+    responsibilities: [
+      '协助开发前端功能',
+      '参与代码审查',
+      '学习前沿技术'
+    ],
+    benefits: ['实习证明', '餐补', '导师带教', '转正机会']
+  },
+  {
+    id: 'proj-052',
+    companyName: '阿里巴巴',
+    industry: '电子商务',
+    companySize: '10000+',
+    location: '杭州',
+    jobTitle: '后端开发应届生',
+    jobType: 'full-time',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 20000,
+    salaryMax: 35000,
+    requirements: [
+      { id: 'req-1', skill: 'Java/Python', level: 'strong', weight: 35 },
+      { id: 'req-2', skill: 'SQL', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '计算机基础', level: 'expert', weight: 25 },
+      { id: 'req-4', skill: '英语能力', level: 'moderate', weight: 15 }
+    ],
+    description: '加入淘宝技术团队，参与核心系统开发',
+    responsibilities: [
+      '参与系统开发',
+      '编写技术文档',
+      '学习业务知识'
+    ],
+    benefits: ['六险一金', '住房补贴', '导师计划', '股票期权']
+  },
+  {
+    id: 'proj-053',
+    companyName: '腾讯',
+    industry: '互联网',
+    companySize: '10000+',
+    location: '深圳',
+    jobTitle: '产品经理实习生',
+    jobType: 'internship',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 12000,
+    salaryMax: 20000,
+    requirements: [
+      { id: 'req-1', skill: '需求分析', level: 'moderate', weight: 30 },
+      { id: 'req-2', skill: '文档撰写', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '数据分析', level: 'basic', weight: 25 },
+      { id: 'req-4', skill: '沟通能力', level: 'strong', weight: 20 }
+    ],
+    description: '参与微信产品设计，学习产品方法论',
+    responsibilities: [
+      '协助需求收集',
+      '制作产品原型',
+      '参与用户研究'
+    ],
+    benefits: ['实习证明', '免费班车', '导师指导', '转正机会']
+  },
+  {
+    id: 'proj-054',
+    companyName: '百度',
+    industry: '人工智能',
+    companySize: '10000+',
+    location: '北京',
+    jobTitle: '算法工程师应届生',
+    jobType: 'full-time',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 28000,
+    salaryMax: 45000,
+    requirements: [
+      { id: 'req-1', skill: '机器学习', level: 'strong', weight: 35 },
+      { id: 'req-2', skill: 'Python', level: 'expert', weight: 30 },
+      { id: 'req-3', skill: '数学基础', level: 'expert', weight: 25 },
+      { id: 'req-4', skill: '英语阅读', level: 'strong', weight: 10 }
+    ],
+    description: '加入百度AI团队，从事算法研发',
+    responsibilities: [
+      '参与算法研发',
+      '论文研读复现',
+      '模型调优迭代'
+    ],
+    benefits: ['六险一金', '租房补贴', '年度体检', '培训机会']
+  },
+  {
+    id: 'proj-055',
+    companyName: '美团',
+    industry: '本地生活',
+    companySize: '10000+',
+    location: '北京',
+    jobTitle: '数据分析师实习生',
+    jobType: 'internship',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 12000,
+    salaryMax: 20000,
+    requirements: [
+      { id: 'req-1', skill: 'SQL', level: 'strong', weight: 35 },
+      { id: 'req-2', skill: 'Python', level: 'moderate', weight: 25 },
+      { id: 'req-3', skill: 'Excel', level: 'expert', weight: 25 },
+      { id: 'req-4', skill: '统计学', level: 'moderate', weight: 15 }
+    ],
+    description: '参与美团大数据分析，掌握数据分析技能',
+    responsibilities: [
+      '数据清洗整理',
+      '报表制作',
+      '参与数据分析项目'
+    ],
+    benefits: ['实习证明', '餐补', '导师带教', '转正机会']
+  },
+  {
+    id: 'proj-056',
+    companyName: '京东',
+    industry: '电子商务',
+    companySize: '10000+',
+    location: '北京',
+    jobTitle: '测试工程师应届生',
+    jobType: 'full-time',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 18000,
+    salaryMax: 30000,
+    requirements: [
+      { id: 'req-1', skill: '测试理论', level: 'strong', weight: 30 },
+      { id: 'req-2', skill: '测试用例设计', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: 'Python/Java', level: 'moderate', weight: 25 },
+      { id: 'req-4', skill: '缺陷管理', level: 'moderate', weight: 20 }
+    ],
+    description: '加入京东质量保障团队，学习测试技术',
+    responsibilities: [
+      '编写测试用例',
+      '执行测试任务',
+      '提交缺陷报告'
+    ],
+    benefits: ['六险一金', '住房补贴', '餐补', '股票']
+  },
+  {
+    id: 'proj-057',
+    companyName: '网易',
+    industry: '游戏',
+    companySize: '10000+',
+    location: '杭州',
+    jobTitle: '游戏策划实习生',
+    jobType: 'internship',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 10000,
+    salaryMax: 18000,
+    requirements: [
+      { id: 'req-1', skill: '游戏理解', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '文案写作', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '数值分析', level: 'moderate', weight: 25 },
+      { id: 'req-4', skill: '沟通协作', level: 'moderate', weight: 15 }
+    ],
+    description: '参与网易热门游戏策划，学习游戏设计',
+    responsibilities: [
+      '协助玩法设计',
+      '编写策划文档',
+      '参与游戏测试'
+    ],
+    benefits: ['实习证明', '餐补', '游戏福利', '转正机会']
+  },
+  {
+    id: 'proj-058',
+    companyName: '小红书',
+    industry: '社交电商',
+    companySize: '1000-9999',
+    location: '上海',
+    jobTitle: 'UI设计应届生',
+    jobType: 'full-time',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 18000,
+    salaryMax: 30000,
+    requirements: [
+      { id: 'req-1', skill: 'UI设计', level: 'strong', weight: 35 },
+      { id: 'req-2', skill: 'Figma/Sketch', level: 'expert', weight: 30 },
+      { id: 'req-3', skill: '设计理论', level: 'strong', weight: 20 },
+      { id: 'req-4', skill: '审美能力', level: 'strong', weight: 15 }
+    ],
+    description: '加入小红书设计团队，参与产品设计',
+    responsibilities: [
+      '设计产品界面',
+      '制作设计稿',
+      '参与设计评审'
+    ],
+    benefits: ['五险一金', '餐补', '年度体检', '员工活动']
+  },
+  {
+    id: 'proj-059',
+    companyName: '快手',
+    industry: '短视频',
+    companySize: '1000-9999',
+    location: '北京',
+    jobTitle: '内容运营实习生',
+    jobType: 'internship',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 8000,
+    salaryMax: 15000,
+    requirements: [
+      { id: 'req-1', skill: '文案写作', level: 'strong', weight: 30 },
+      { id: 'req-2', skill: '热点追踪', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '数据分析', level: 'basic', weight: 25 },
+      { id: 'req-4', skill: '沟通能力', level: 'strong', weight: 20 }
+    ],
+    description: '参与快手内容运营，学习短视频运营技巧',
+    responsibilities: [
+      '策划内容选题',
+      '撰写文案',
+      '分析数据'
+    ],
+    benefits: ['实习证明', '免费三餐', '租房补贴', '转正机会']
+  },
+  {
+    id: 'proj-060',
+    companyName: '蚂蚁集团',
+    industry: '金融科技',
+    companySize: '10000+',
+    location: '杭州',
+    jobTitle: '安全工程师应届生',
+    jobType: 'full-time',
+    experienceMin: 0,
+    experienceMax: 1,
+    salaryMin: 22000,
+    salaryMax: 38000,
+    requirements: [
+      { id: 'req-1', skill: '网络安全', level: 'strong', weight: 35 },
+      { id: 'req-2', skill: '操作系统', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '编程能力', level: 'strong', weight: 25 },
+      { id: 'req-4', skill: '学习能力', level: 'strong', weight: 15 }
+    ],
+    description: '加入蚂蚁安全团队，学习金融安全技术',
+    responsibilities: [
+      '参与安全测试',
+      '学习安全技术',
+      '协助安全审计'
+    ],
+    benefits: ['六险一金', '住房补贴', '餐补', '股票期权']
+  },
+  // 金融、量化交易、游戏开发、社交媒体运营、行政、人事、运维岗位 (7个)
+  {
+    id: 'proj-061',
+    companyName: '招商证券',
+    industry: '金融',
+    companySize: '10000+',
+    location: '深圳',
+    jobTitle: '金融科技开发工程师',
+    jobType: 'full-time',
+    experienceMin: 2,
+    experienceMax: 5,
+    salaryMin: 30000,
+    salaryMax: 50000,
+    requirements: [
+      { id: 'req-1', skill: 'Java', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '金融知识', level: 'strong', weight: 30 },
+      { id: 'req-3', skill: 'SQL', level: 'expert', weight: 20 },
+      { id: 'req-4', skill: '风控系统', level: 'moderate', weight: 15 }
+    ],
+    description: '负责证券交易系统的开发和维护',
+    responsibilities: [
+      '开发金融交易系统',
+      '维护系统稳定性',
+      '参与需求评审'
+    ],
+    benefits: ['六险一金', '年终奖金', '培训机会', '职业发展']
+  },
+  {
+    id: 'proj-062',
+    companyName: '量化私募',
+    industry: '金融',
+    companySize: '50-200',
+    location: '上海',
+    jobTitle: '量化交易研究员',
+    jobType: 'full-time',
+    experienceMin: 2,
+    experienceMax: 5,
+    salaryMin: 40000,
+    salaryMax: 80000,
+    requirements: [
+      { id: 'req-1', skill: 'Python', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '数学建模', level: 'expert', weight: 30 },
+      { id: 'req-3', skill: '金融工程', level: 'strong', weight: 20 },
+      { id: 'req-4', skill: '数据分析', level: 'strong', weight: 15 }
+    ],
+    description: '开发和优化量化交易策略',
+    responsibilities: [
+      '开发量化策略',
+      '回测策略效果',
+      '优化交易算法'
+    ],
+    benefits: ['六险一金', '绩效奖金', '期权激励', '弹性工作']
+  },
+  {
+    id: 'proj-063',
+    companyName: '腾讯游戏',
+    industry: '游戏',
+    companySize: '10000+',
+    location: '深圳',
+    jobTitle: '游戏开发工程师',
+    jobType: 'full-time',
+    experienceMin: 2,
+    experienceMax: 5,
+    salaryMin: 35000,
+    salaryMax: 60000,
+    requirements: [
+      { id: 'req-1', skill: 'C++', level: 'expert', weight: 40 },
+      { id: 'req-2', skill: '游戏引擎', level: 'strong', weight: 30 },
+      { id: 'req-3', skill: 'Unreal Engine', level: 'strong', weight: 20 },
+      { id: 'req-4', skill: 'Lua', level: 'moderate', weight: 10 }
+    ],
+    description: '负责腾讯游戏核心玩法开发',
+    responsibilities: [
+      '开发游戏核心功能',
+      '优化游戏性能',
+      '与策划团队协作'
+    ],
+    benefits: ['六险一金', '游戏福利', '年度旅游', '免费班车']
+  },
+  {
+    id: 'proj-064',
+    companyName: '微博',
+    industry: '社交媒体',
+    companySize: '1000-9999',
+    location: '北京',
+    jobTitle: '社交媒体运营',
+    jobType: 'full-time',
+    experienceMin: 1,
+    experienceMax: 3,
+    salaryMin: 20000,
+    salaryMax: 35000,
+    requirements: [
+      { id: 'req-1', skill: '内容运营', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '热点追踪', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '数据分析', level: 'strong', weight: 25 },
+      { id: 'req-4', skill: '文案写作', level: 'strong', weight: 15 }
+    ],
+    description: '负责微博平台热点内容运营',
+    responsibilities: [
+      '策划热点内容',
+      '运营官方账号',
+      '分析运营数据'
+    ],
+    benefits: ['五险一金', '餐补', '年度体检', '团建活动']
+  },
+  {
+    id: 'proj-065',
+    companyName: '字节跳动',
+    industry: '互联网',
+    companySize: '10000+',
+    location: '北京',
+    jobTitle: '行政主管',
+    jobType: 'full-time',
+    experienceMin: 3,
+    experienceMax: 6,
+    salaryMin: 25000,
+    salaryMax: 40000,
+    requirements: [
+      { id: 'req-1', skill: '行政管理', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '办公管理', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '活动组织', level: 'strong', weight: 25 },
+      { id: 'req-4', skill: '沟通协调', level: 'strong', weight: 15 }
+    ],
+    description: '负责公司行政事务管理',
+    responsibilities: [
+      '管理办公环境',
+      '组织公司活动',
+      '协调行政事务'
+    ],
+    benefits: ['六险一金', '免费三餐', '年度体检', '团建']
+  },
+  {
+    id: 'proj-066',
+    companyName: '阿里巴巴',
+    industry: '电子商务',
+    companySize: '10000+',
+    location: '杭州',
+    jobTitle: '人力资源经理',
+    jobType: 'full-time',
+    experienceMin: 3,
+    experienceMax: 6,
+    salaryMin: 30000,
+    salaryMax: 50000,
+    requirements: [
+      { id: 'req-1', skill: '招聘管理', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '员工关系', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '绩效评估', level: 'strong', weight: 25 },
+      { id: 'req-4', skill: 'HR战略', level: 'moderate', weight: 15 }
+    ],
+    description: '负责人力资源管理和团队建设',
+    responsibilities: [
+      '招聘优秀人才',
+      '管理员工绩效',
+      '推动企业文化'
+    ],
+    benefits: ['六险一金', '住房补贴', '餐补', '股票期权']
+  },
+  {
+    id: 'proj-067',
+    companyName: '美团',
+    industry: '本地生活',
+    companySize: '10000+',
+    location: '北京',
+    jobTitle: 'DevOps运维工程师',
+    jobType: 'full-time',
+    experienceMin: 2,
+    experienceMax: 5,
+    salaryMin: 28000,
+    salaryMax: 48000,
+    requirements: [
+      { id: 'req-1', skill: 'Linux', level: 'expert', weight: 30 },
+      { id: 'req-2', skill: 'Kubernetes', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: 'CI/CD', level: 'strong', weight: 25 },
+      { id: 'req-4', skill: '监控告警', level: 'strong', weight: 20 }
+    ],
+    description: '负责美团基础设施运维和自动化',
+    responsibilities: [
+      '维护基础设施',
+      '优化运维流程',
+      '保障系统稳定'
+    ],
+    benefits: ['五险一金', '餐补', '年度体检', '团建']
+  },
+  // 金融领域岗位 (4个)
+  {
+    id: 'proj-068',
+    companyName: '沪深交易所',
+    industry: '金融',
+    companySize: '1000-9999',
+    location: '上海',
+    jobTitle: '交易所交易系统产品经理',
+    jobType: 'full-time',
+    experienceMin: 3,
+    experienceMax: 6,
+    salaryMin: 35000,
+    salaryMax: 60000,
+    requirements: [
+      { id: 'req-1', skill: '交易系统', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '保证金', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '风控', level: 'expert', weight: 25 },
+      { id: 'req-4', skill: '金融衍生品', level: 'strong', weight: 15 }
+    ],
+    description: '负责交易所核心交易系统产品设计，涵盖保证金管理、合约交易、风控体系',
+    responsibilities: [
+      '设计交易系统功能',
+      '优化保证金机制',
+      '完善风控规则'
+    ],
+    benefits: ['六险一金', '年终奖金', '培训机会', '职业发展']
+  },
+  {
+    id: 'proj-069',
+    companyName: '量化科技公司',
+    industry: '金融',
+    companySize: '200-500',
+    location: '杭州',
+    jobTitle: '量化交易平台产品经理',
+    jobType: 'full-time',
+    experienceMin: 2,
+    experienceMax: 5,
+    salaryMin: 30000,
+    salaryMax: 55000,
+    requirements: [
+      { id: 'req-1', skill: '量化交易', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '策略回测', level: 'strong', weight: 25 },
+      { id: 'req-3', skill: '数据可视化', level: 'strong', weight: 20 },
+      { id: 'req-4', skill: 'API设计', level: 'moderate', weight: 20 }
+    ],
+    description: '负责量化交易平台和工具产品设计，支持策略开发和实盘交易',
+    responsibilities: [
+      '设计量化工具',
+      '优化回测系统',
+      '对接交易接口'
+    ],
+    benefits: ['六险一金', '绩效奖金', '期权激励', '弹性工作']
+  },
+  {
+    id: 'proj-070',
+    companyName: '跨境支付公司',
+    industry: '金融',
+    companySize: '500-1000',
+    location: '深圳',
+    jobTitle: '跨境清结算产品经理',
+    jobType: 'full-time',
+    experienceMin: 3,
+    experienceMax: 6,
+    salaryMin: 32000,
+    salaryMax: 58000,
+    requirements: [
+      { id: 'req-1', skill: '清结算', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '跨境支付', level: 'expert', weight: 30 },
+      { id: 'req-3', skill: '外汇管理', level: 'strong', weight: 20 },
+      { id: 'req-4', skill: '合规', level: 'strong', weight: 15 }
+    ],
+    description: '负责跨境支付和清结算系统产品设计，支持多币种多通道',
+    responsibilities: [
+      '设计清结算流程',
+      '对接海外支付通道',
+      '优化资金调度'
+    ],
+    benefits: ['六险一金', '年终奖金', '海外出差', '职业发展']
+  },
+  {
+    id: 'proj-071',
+    companyName: '金融科技公司',
+    industry: '金融',
+    companySize: '1000-9999',
+    location: '北京',
+    jobTitle: '金融风控合规产品经理',
+    jobType: 'full-time',
+    experienceMin: 3,
+    experienceMax: 6,
+    salaryMin: 30000,
+    salaryMax: 55000,
+    requirements: [
+      { id: 'req-1', skill: '风控系统', level: 'expert', weight: 35 },
+      { id: 'req-2', skill: '合规', level: 'expert', weight: 30 },
+      { id: 'req-3', skill: '反洗钱', level: 'strong', weight: 20 },
+      { id: 'req-4', skill: '数据分析', level: 'strong', weight: 15 }
+    ],
+    description: '负责金融风控与合规系统设计，满足监管要求和风险控制',
+    responsibilities: [
+      '设计风控规则',
+      '完善合规体系',
+      '优化反洗钱系统'
+    ],
+    benefits: ['六险一金', '年终奖金', '培训机会', '健康体检']
   }
 ]
 

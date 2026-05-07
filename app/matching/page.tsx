@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { GitCompare, Loader2, Upload, FileText, ArrowRight } from 'lucide-react'
+import { GitCompare, Loader2, Upload, FileText, ArrowRight, Sparkles, Briefcase, GraduationCap } from 'lucide-react'
 import Link from 'next/link'
 
 interface Resume {
@@ -14,11 +14,25 @@ interface Resume {
   created_at: string
 }
 
+const demoEntries = [
+  { href: '/matching/demo-product', icon: Sparkles, title: 'AI 产品经理', desc: '适合产品、AI 应用、B 端工具岗位体验' },
+  { href: '/matching/demo-dev', icon: Briefcase, title: '全栈工程师', desc: '适合前端、全栈、工程化岗位体验' },
+  { href: '/matching/demo-student', icon: GraduationCap, title: '应届/实习生', desc: '适合实习、初级产品和数据岗位体验' }
+]
+
 export default function MatchingEntryPage() {
   const router = useRouter()
   const { data: session } = useSession()
   const [loading, setLoading] = useState(true)
   const [resumes, setResumes] = useState<Resume[]>([])
+  const [openingDemo, setOpeningDemo] = useState('')
+
+  useEffect(() => {
+    demoEntries.forEach((demo) => {
+      router.prefetch(demo.href)
+      router.prefetch(demo.href.replace('/matching/', '/graph/'))
+    })
+  }, [router])
 
   useEffect(() => {
     if (!session) {
@@ -56,9 +70,28 @@ export default function MatchingEntryPage() {
 
   if (loading) {
     return (
-      <div className="py-16 text-center">
-        <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary-500" />
-        <p className="text-slate-400">正在加载...</p>
+      <div className="py-10">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl skeleton-shimmer" />
+          <div className="h-8 w-48 mx-auto mb-3 rounded-lg skeleton-shimmer" />
+          <div className="h-5 w-72 mx-auto rounded-lg skeleton-shimmer" />
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="stagger-item p-6 rounded-2xl bg-slate-800/30 border border-slate-700"
+              style={{ animationDelay: `${index * 70}ms` }}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl skeleton-shimmer" />
+                <div className="w-5 h-5 rounded skeleton-shimmer" />
+              </div>
+              <div className="h-6 w-32 mb-3 rounded-lg skeleton-shimmer" />
+              <div className="h-4 w-full rounded-lg skeleton-shimmer" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -66,16 +99,55 @@ export default function MatchingEntryPage() {
   // 未登录状态
   if (!session) {
     return (
-      <div className="py-16 text-center">
-        <GitCompare className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-        <h2 className="text-2xl font-bold mb-2">智能匹配</h2>
-        <p className="text-slate-400 mb-6">请先登录后使用智能匹配功能</p>
-        <Link
-          href="/login"
-          className="px-6 py-3 bg-primary-500 rounded-lg text-white hover:bg-primary-600 transition-colors"
-        >
-          立即登录
-        </Link>
+      <div className="py-10">
+        <div className="text-center mb-8">
+          <GitCompare className="w-16 h-16 mx-auto mb-4 text-primary-500" />
+          <h2 className="text-2xl font-bold mb-2">智能匹配</h2>
+          <p className="text-slate-400">不用注册上传，先用 Demo 跑完整匹配闭环</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
+          {demoEntries.map((demo, index) => {
+            const Icon = demo.icon
+            const isOpening = openingDemo === demo.href
+            return (
+              <Link
+                key={demo.href}
+                href={demo.href}
+                onClick={() => setOpeningDemo(demo.href)}
+                className={`stagger-item p-6 rounded-2xl border transition-all text-left group ${
+                  isOpening
+                    ? 'bg-primary-500/10 border-primary-400/70 shadow-[0_0_30px_rgba(56,189,248,0.18)] scale-[0.99]'
+                    : 'bg-slate-800/30 border-slate-700 hover:border-primary-500/50 hover:bg-slate-800/50'
+                }`}
+                style={{ animationDelay: `${index * 70}ms` }}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-400 to-accent-500 flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                  {isOpening ? (
+                    <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
+                  ) : (
+                    <ArrowRight className="w-5 h-5 text-slate-600 group-hover:text-primary-400 transition-colors" />
+                  )}
+                </div>
+                <h3 className="font-semibold text-lg mb-1">{demo.title}</h3>
+                <p className="text-slate-400 text-sm">{isOpening ? '正在进入 Demo...' : demo.desc}</p>
+              </Link>
+            )
+          })}
+        </div>
+
+        <div className="text-center">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-6 py-3 border border-primary-500/50 rounded-xl text-primary-400 hover:bg-primary-500/10 transition-all"
+          >
+            登录后上传自己的简历
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
     )
   }
@@ -91,26 +163,33 @@ export default function MatchingEntryPage() {
         </div>
 
         {/* Demo 展示 */}
-        <div className="rounded-2xl bg-slate-800/30 border border-slate-700 p-6 mb-8 opacity-75">
+        <div className="rounded-2xl bg-slate-800/30 border border-slate-700 p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">🎯 示例匹配分析</h3>
-            <span className="px-3 py-1 rounded-full bg-slate-700 text-slate-400 text-sm">Demo 数据</span>
+            <h3 className="text-lg font-semibold">🎯 先看 3 个完整 Demo</h3>
+            <span className="px-3 py-1 rounded-full bg-primary-500/20 text-primary-400 text-sm">无需上传</span>
           </div>
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-slate-900/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-green-400 font-medium">匹配度 85%</span>
-                <span className="text-slate-500 text-sm">AI 产品经理</span>
-              </div>
-              <p className="text-slate-400 text-sm">能力契合度高，项目经验丰富</p>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-900/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-yellow-400 font-medium">匹配度 62%</span>
-                <span className="text-slate-500 text-sm">技术负责人</span>
-              </div>
-              <p className="text-slate-400 text-sm">技术能力匹配，管理经验待提升</p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {demoEntries.map((demo, index) => {
+              const Icon = demo.icon
+              const isOpening = openingDemo === demo.href
+              return (
+                <Link
+                  key={demo.href}
+                  href={demo.href}
+                  onClick={() => setOpeningDemo(demo.href)}
+                  className={`stagger-item p-4 rounded-xl transition-colors group ${
+                    isOpening ? 'bg-primary-500/10 ring-1 ring-primary-400/60' : 'bg-slate-900/50 hover:bg-slate-900/80'
+                  }`}
+                  style={{ animationDelay: `${index * 60}ms` }}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    {isOpening ? <Loader2 className="w-5 h-5 text-primary-400 animate-spin" /> : <Icon className="w-5 h-5 text-primary-400" />}
+                    <span className="font-medium group-hover:text-primary-400">{demo.title}</span>
+                  </div>
+                  <p className="text-slate-400 text-sm">{isOpening ? '正在进入 Demo...' : demo.desc}</p>
+                </Link>
+              )
+            })}
           </div>
         </div>
 
