@@ -22,12 +22,13 @@ const handler = NextAuth({
         }
 
         if (user.password === credentials.password) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return {
             id: user.id,
             name: user.name,
             email: user.email,
             role: user.role
-          }
+          } as any
         }
 
         return null
