@@ -95,7 +95,7 @@ export default function SettingsPage() {
                       value={form.deepseekApiKey}
                       onChange={(e) => setForm({ ...form, deepseekApiKey: e.target.value })}
                       placeholder="sk-xxxxxxxxxxxxxxxx"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -104,7 +104,7 @@ export default function SettingsPage() {
                       type="text"
                       value={form.deepseekBaseUrl}
                       onChange={(e) => setForm({ ...form, deepseekBaseUrl: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export default function SettingsPage() {
                       value={form.openaiApiKey}
                       onChange={(e) => setForm({ ...form, openaiApiKey: e.target.value })}
                       placeholder="sk-xxxxxxxxxxxxxxxx"
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                   <div>
@@ -157,7 +157,7 @@ export default function SettingsPage() {
                       type="text"
                       value={form.openaiBaseUrl}
                       onChange={(e) => setForm({ ...form, openaiBaseUrl: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
                 </div>

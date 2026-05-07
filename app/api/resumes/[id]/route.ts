@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { resumeDb } from '@/lib/db'
 import { findDemoTalent } from '@/data/demoTalents'
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params
     
@@ -45,9 +45,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const token = await getToken({ req: req as any })
+    const token = await getToken({ req })
     if (!token) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 })
     }
@@ -72,7 +72,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
-    const token = await getToken({ req: req as any })
+    const token = await getToken({ req })
     if (!token?.sub) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 })
     }

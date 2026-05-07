@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { resumeDb } from '@/lib/db'
 import { getDemoResumeRows } from '@/data/demoTalents'
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const token = await getToken({ req })
     if (!token) {

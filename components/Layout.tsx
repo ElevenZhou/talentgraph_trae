@@ -4,7 +4,7 @@ import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Sparkles, Home, FileText, Network, GitCompare, User, LogOut } from 'lucide-react'
+import { Sparkles, Home, FileText, Network, GitCompare, User, LogOut, Shield } from 'lucide-react'
 
 interface LayoutProps {
   children: ReactNode
@@ -14,12 +14,15 @@ export default function Layout({ children }: LayoutProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
 
+  const isAdmin = (session?.user as any)?.role === 'admin'
+
   const navItems = [
     { path: '/', label: '首页', icon: Home },
     { path: '/converter', label: '简历转换', icon: FileText },
     { path: '/profile', label: '个人中心', icon: User },
     { path: '/graph', label: '人才图谱', icon: Network },
     { path: '/matching', label: '智能匹配', icon: GitCompare },
+    ...(isAdmin ? [{ path: '/admin/dashboard', label: '管理后台', icon: Shield }] : []),
   ]
 
   return (

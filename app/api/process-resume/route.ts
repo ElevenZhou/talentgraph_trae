@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { processResume, AIProvider, ProgressCallback } from '@/lib/aiService'
 import { resumeDb } from '@/lib/db'
 import { logger } from '@/lib/logger'
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const encoder = new TextEncoder()
   
   const stream = new ReadableStream({
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       try {
         logger.debug('ProcessResume', '开始处理简历')
 
-        const token = await getToken({ req: req as any })
+        const token = await getToken({ req })
         logger.debug('ProcessResume', 'Token 解析结果', { 
           hasToken: !!token, 
           hasSub: !!token?.sub,
