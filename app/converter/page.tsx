@@ -7,10 +7,7 @@ import { Upload, FileText, Loader2, ArrowRight, Sparkles, Brain, Network, Target
 import * as pdfjsLib from 'pdfjs-dist'
 
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-  ).href
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
 }
 
 interface TalentGraphData {
