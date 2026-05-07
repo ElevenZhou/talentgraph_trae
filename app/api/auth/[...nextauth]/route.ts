@@ -22,7 +22,6 @@ const handler = NextAuth({
         }
 
         if (user.password === credentials.password) {
-          // @ts-ignore
           return {
             id: user.id,
             name: user.name,
@@ -41,14 +40,14 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.userId = user.id
-        token.role = user.role
+        ;(token as Record<string, unknown>).role = (user as Record<string, unknown>).role
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.userId
-        session.user.role = token.role
+        (session.user as Record<string, unknown>).id = token.userId
+        ;(session.user as Record<string, unknown>).role = (token as Record<string, unknown>).role
       }
       return session
     }
