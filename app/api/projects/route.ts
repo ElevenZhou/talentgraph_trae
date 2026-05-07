@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { mockProjects, searchProjects, getProjectsByIndustry, getProjectsByJobType } from '@/data/mockProjects'
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url)
     const search = url.searchParams.get('search')
