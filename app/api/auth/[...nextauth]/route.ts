@@ -40,14 +40,14 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.userId = user.id
-        ;(token as Record<string, unknown>).role = (user as Record<string, unknown>).role
+        ;(token as any).role = (user as any).role
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as Record<string, unknown>).id = token.userId
-        ;(session.user as Record<string, unknown>).role = (token as Record<string, unknown>).role
+        (session.user as any).id = token.userId
+        ;(session.user as any).role = (token as any).role
       }
       return session
     }
