@@ -30,3 +30,8 @@ dist-ssr
 # Next.js build output
 .next/
 .next/cache/
+
+# Database
+data/*.db
+data/*.db-shm
+data/*.db-wal
