@@ -47,16 +47,17 @@ export default NextAuth({
     async jwt({ token, user }) {
       if (user) {
         const u = user as any
-        (token as any).userId = '' + u.id
-        (token as any).role = u.role
+        token.userId = '' + u.id
+        token.role = u.role
         logger.debug('Auth', `JWT token created for user: ${u.id}`)
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = (token as any).userId
-        (session.user as any).role = (token as any).role
+        const su = session.user as any
+        su.id = (token as any).userId
+        su.role = (token as any).role
         logger.debug('Auth', `Session updated`, { userId: (token as any).userId, hasRole: !!(token as any).role })
       }
       return session
