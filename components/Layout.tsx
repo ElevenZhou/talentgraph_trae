@@ -17,8 +17,9 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: '/', label: '首页', icon: Home },
     { path: '/converter', label: '简历转换', icon: FileText },
-    { path: '/graph/demo', label: '人才图谱', icon: Network },
-    { path: '/matching/demo', label: '智能匹配', icon: GitCompare },
+    { path: '/profile', label: '个人中心', icon: User },
+    { path: '/graph', label: '人才图谱', icon: Network },
+    { path: '/matching', label: '智能匹配', icon: GitCompare },
   ]
 
   return (

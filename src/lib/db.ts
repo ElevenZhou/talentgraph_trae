@@ -68,6 +68,8 @@ function initSchema(database: Database.Database) {
       ['test-user-009', '吴强', 'user08@talentgraph.com', '123456', 'user'],
       ['test-user-010', '郑琳', 'user09@talentgraph.com', '123456', 'user'],
       ['test-user-011', '孙浩', 'user10@talentgraph.com', '123456', 'user'],
+      ['test-user-012', '测试用户1', 'test01@talentgraph.com', '123456', 'user'],
+      ['test-user-013', '测试用户2', 'test02@talentgraph.com', '123456', 'user'],
     ]
 
     for (const user of testUsers) {
@@ -120,7 +122,7 @@ export const resumeDb = {
     const db = getDb()
     const stmt = db.prepare('SELECT * FROM resumes WHERE user_id = ? ORDER BY created_at DESC')
     const rows = stmt.all(userId) as Resume[]
-    return rows.map(row => ({ ...row, talent_data: JSON.parse(row.talent_data) }))
+    return rows
   },
 
   findAll() {
@@ -146,6 +148,13 @@ export const resumeDb = {
     const db = getDb()
     const stmt = db.prepare('SELECT COUNT(*) as count FROM resumes WHERE status = ?')
     return (stmt.get(status) as { count: number }).count
+  },
+
+  deleteById(id: string) {
+    const db = getDb()
+    const stmt = db.prepare('DELETE FROM resumes WHERE id = ?')
+    const result = stmt.run(id)
+    return result.changes > 0
   }
 }
 

@@ -1,12 +1,43 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { getServerSession } from 'next-auth/next'
+import { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { userDb } from '@/lib/db'
 import { ArrowRight, Upload, Network, GitBranch, Shield } from 'lucide-react'
 
-export default function Home() {
-  const router = useRouter()
-  const { data: session } = useSession()
+const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "邮箱", type: "email" },
+        password: { label: "密码", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+        const user = userDb.findByEmail(credentials.email)
+        if (!user) {
+          return null
+        }
+        if (user.password === credentials.password) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }
+        }
+        return null
+      }
+    })
+  ],
+  session: { strategy: "jwt" }
+}
+
+export default async function Home() {
+  const session = await getServerSession(authOptions)
 
   const features = [
     {
@@ -53,19 +84,13 @@ export default function Home() {
           让人才不再投递，让项目主动靠近
         </p>
 
-        <button
-          onClick={() => {
-            if (session) {
-              router.push('/converter')
-            } else {
-              router.push('/login')
-            }
-          }}
+        <a
+          href={session ? '/converter' : '/login'}
           className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl text-white font-semibold text-lg hover:opacity-90 transition-all hover:scale-105 glow"
         >
           {session ? '开始创建图谱' : '登录后体验'}
           <ArrowRight className="w-5 h-5" />
-        </button>
+        </a>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
@@ -131,19 +156,13 @@ export default function Home() {
           传统简历是给人类 HR 快速浏览的<br />
           新时代简历应该同时给人类和 AI Agent 理解
         </p>
-        <button
-          onClick={() => {
-            if (session) {
-              router.push('/converter')
-            } else {
-              router.push('/login')
-            }
-          }}
+        <a
+          href={session ? '/converter' : '/login'}
           className="inline-flex items-center gap-2 px-6 py-3 border border-primary-500/50 rounded-xl text-primary-400 hover:bg-primary-500/10 transition-all"
         >
           立即开始构建你的人才图谱
           <ArrowRight className="w-4 h-4" />
-        </button>
+        </a>
       </div>
     </div>
   )

@@ -2,6 +2,8 @@ import OpenAI from 'openai'
 
 export type AIProvider = 'openai' | 'deepseek'
 
+export type ProgressCallback = (step: string) => void
+
 export interface AIConfig {
   provider: AIProvider
   apiKey: string
@@ -27,7 +29,7 @@ const providers: Record<AIProvider, AIConfig> = {
     provider: 'deepseek',
     apiKey: process.env.DEEPSEEK_API_KEY || '',
     baseURL: process.env.DEEPSEEK_API_BASE_URL || 'https://api.deepseek.com/v1',
-    model: 'deepseek-v4-flash'
+    model: 'deepseek-chat'
   }
 }
 
@@ -70,15 +72,24 @@ export async function callAI(
   try {
     const client = new OpenAI({
       apiKey: config.apiKey,
-      baseURL: config.baseURL
+      baseURL: config.baseURL,
+      timeout: 60000
     })
 
+    console.log(`[AI Service] Calling ${selectedProvider} with model ${config.model}`)
+    console.log(`[AI Service] API Key: ${config.apiKey.substring(0, 5)}...${config.apiKey.substring(-5)}`)
+    console.log(`[AI Service] Base URL: ${config.baseURL}`)
+
+    const startTime = Date.now()
     const response = await client.chat.completions.create({
       model: config.model,
       messages,
       temperature: 0.7,
       max_tokens: 4000
     })
+    const endTime = Date.now()
+
+    console.log(`[AI Service] Response received in ${endTime - startTime}ms`)
 
     const content = response.choices[0]?.message?.content || ''
 
@@ -89,6 +100,12 @@ export async function callAI(
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误'
+    console.error(`[AI Service] Error calling ${selectedProvider}:`, errorMessage)
+    
+    if (error instanceof Error) {
+      console.error(`[AI Service] Error stack:`, error.stack)
+    }
+    
     return {
       success: false,
       content: '',
@@ -98,68 +115,61 @@ export async function callAI(
   }
 }
 
-export async function processResume(resumeText: string, provider?: AIProvider): Promise<AIResponse> {
-  const prompt = `
-你是一位专业的人才分析师，请将以下简历内容转换为结构化的人才图谱数据。
-
-简历内容：
+export async function processResume(
+  resumeText: string, 
+  provider?: AIProvider,
+  onProgress?: ProgressCallback
+): Promise<AIResponse> {
+  const steps = [
+    '正在理解简历结构...',
+    '提取个人信息...',
+    '识别工作经历...',
+    '分析技术能力...',
+    '整理项目经验...',
+    '计算能力强度...',
+    '生成人才图谱...'
+  ]
+  
+  let currentStep = 0
+  const progressInterval = setInterval(() => {
+    if (currentStep < steps.length - 1) {
+      currentStep++
+      onProgress?.(steps[currentStep])
+    }
+  }, 7000)
+  
+  onProgress?.(steps[0])
+  
+  const prompt = `你是一个严格的JSON生成器。
+输入的简历内容：
 ${resumeText}
 
-请输出严格的 JSON 格式，包含以下字段：
-{
-  "identity": {
-    "name": "姓名",
-    "role": "职位",
-    "location": "城市",
-    "availability": "looking|open|not-looking",
-    "preferences": ["偏好1", "偏好2"]
-  },
-  "capabilities": [
-    {
-      "id": "cap-xxx",
-      "name": "能力名称",
-      "level": "expert|strong|moderate|basic",
-      "category": "分类",
-      "evidenceIds": ["evi-xxx"],
-      "description": "描述"
-    }
-  ],
-  "evidence": [
-    {
-      "id": "evi-xxx",
-      "type": "company|project|education|certificate|portfolio",
-      "title": "标题",
-      "organization": "组织",
-      "period": "时间",
-      "description": "描述",
-      "capabilities": ["相关能力名称"]
-    }
-  ],
-  "boundaries": {
-    "strong": ["强项1", "强项2"],
-    "moderate": ["中等1", "中等2"],
-    "weak": ["弱项1", "弱项2"],
-    "collaboration": ["协作条件"]
-  },
-  "matching": {
-    "idealProjects": ["理想项目1"],
-    "avoidProjects": ["避免项目1"],
-    "independenceLevel": "独立程度描述",
-    "riskFactors": ["风险1"]
-  }
-}
+你必须输出一个符合以下格式的纯JSON对象，不要输出任何其他内容：
 
-注意：
-1. 所有字段都必须填写，不能为空
-2. 能力等级：expert（精通）、strong（熟练）、moderate（一般）、basic（基础）
-3. availability：looking（积极求职）、open（开放机会）、not-looking（暂不考虑）
-4. 输出必须是纯 JSON，不要包含其他文字
+{"identity":{"name":"姓名","role":"职位","location":"城市","availability":"open","preferences":["远程"],"totalExperienceYears":5},"capabilities":[{"id":"cap-1","name":"技能名","level":"expert","category":"技术能力","evidenceIds":["evi-1"],"description":"描述","strength":80,"years":5,"projectCount":3,"qualityScore":7}],"evidence":[{"id":"evi-1","type":"company","title":"职位","organization":"公司","period":"2020-01 ~ 2023-06","description":"工作描述","capabilities":["技能名"],"durationYears":3,"impactScore":8}],"boundaries":{"strong":["优势1"],"moderate":["中等"],"weak":["待提升"],"collaboration":["协作条件"]},"matching":{"idealProjects":["项目类型"],"avoidProjects":[],"independenceLevel":"独立","riskFactors":[]}}
+
+重要规则：
+1. 所有字符串必须用双引号
+2. 数组最后一个元素后不能有逗号
+3. 所有字段必须填写，不能为空
+4. 直接输出JSON，不要任何markdown代码块标记
+5. 数组内不要嵌套数组
   `.trim()
 
-  return callAI([
-    { role: 'system', content: '你是一位专业的人才分析师，擅长将简历转换为结构化数据。' },
-    { role: 'user', content: prompt }
-  ], provider)
+  try {
+    const result = await callAI([
+      { role: 'system', content: '你是一位专业的人才分析师，严格按照给定的JSON Schema和规则将简历转换为结构化数据，特别注意计算每个能力的强度值(strength)、年限(years)、项目数(projectCount)和质量评分(qualityScore)。输出必须是纯JSON。' },
+      { role: 'user', content: prompt }
+    ], provider)
+    
+    clearInterval(progressInterval)
+    onProgress?.('解析完成！')
+    
+    return result
+  } catch (error) {
+    clearInterval(progressInterval)
+    throw error
+  }
 }
 
 export async function analyzeMatching(

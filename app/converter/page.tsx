@@ -76,6 +76,30 @@ const PROCESS_STEPS = [
   { id: 'complete', name: '解析完成', icon: CheckCircle2, description: '人才图谱构建成功' },
 ]
 
+const STEP_MAP: Record<string, number> = {
+  '正在连接 AI 服务...': 0,
+  '正在理解简历结构...': 0,
+  '提取个人信息...': 1,
+  '识别工作经历...': 1,
+  '分析技术能力...': 2,
+  '整理项目经验...': 2,
+  '计算能力强度...': 3,
+  '生成人才图谱...': 4,
+  '正在解析 AI 返回...': 4,
+  '正在保存数据...': 4,
+  '解析完成！': 5,
+  '处理完成！': 5,
+}
+
+const getStepIndex = (stepText: string): number => {
+  for (const [key, index] of Object.entries(STEP_MAP)) {
+    if (stepText.includes(key.replace('...', ''))) {
+      return index
+    }
+  }
+  return 0
+}
+
 export default function ConverterPage() {
   const router = useRouter()
   const { data: session } = useSession()
@@ -110,26 +134,6 @@ export default function ConverterPage() {
   useEffect(() => {
     if (!isProcessing) {
       setCurrentStep(0)
-      return
-    }
-
-    const stepDuration = [2000, 2500, 3000, 2000, 2000, 500]
-    let timeoutIds: NodeJS.Timeout[] = []
-
-    PROCESS_STEPS.forEach((step, index) => {
-      if (index === 0) {
-        setCurrentStep(0)
-      } else {
-        const delay = stepDuration.slice(0, index).reduce((a, b) => a + b, 0)
-        const timeoutId = setTimeout(() => {
-          setCurrentStep(index)
-        }, delay)
-        timeoutIds.push(timeoutId)
-      }
-    })
-
-    return () => {
-      timeoutIds.forEach(id => clearTimeout(id))
     }
   }, [isProcessing])
 
@@ -146,21 +150,85 @@ export default function ConverterPage() {
     await new Promise(resolve => setTimeout(resolve, 500))
 
     try {
-      const res = await fetch('/api/process-resume', {
+      const response = await fetch('/api/process-resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeText })
       })
-      const data = await res.json()
-      if (data.error) {
-        setError(data.error)
-        setIsProcessing(false)
-      } else {
-        setTalentData(data)
-        setCurrentStep(5)
-        setTimeout(() => {
-          setIsProcessing(false)
-        }, 800)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      if (!reader) {
+        throw new Error('无法读取响应流')
+      }
+
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            
+            if (data === '[DONE]') {
+              continue
+            }
+
+            try {
+              const parsed = JSON.parse(data)
+              
+              if (parsed.error) {
+                setError(parsed.error)
+                setIsProcessing(false)
+                return
+              }
+
+              if (parsed.step !== undefined) {
+                setCurrentStep(getStepIndex(parsed.step))
+              }
+
+              if (parsed.type === 'success' && parsed.data) {
+                setTalentData(parsed.data)
+                setCurrentStep(5)
+                setTimeout(() => {
+                  setIsProcessing(false)
+                }, 800)
+              }
+            } catch (e) {
+              console.error('解析 SSE 数据失败:', e)
+            }
+          }
+        }
+      }
+
+      if (buffer.startsWith('data: ')) {
+        const data = buffer.slice(6)
+        try {
+          const parsed = JSON.parse(data)
+          if (parsed.data) {
+            setTalentData(parsed.data)
+            setCurrentStep(5)
+            setTimeout(() => {
+              setIsProcessing(false)
+            }, 800)
+          }
+        } catch (e) {
+          console.error('解析最终数据失败:', e)
+        }
       }
     } catch (err) {
       setError('处理失败，请重试')

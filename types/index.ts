@@ -5,6 +5,7 @@ export interface Identity {
   location: string;
   availability: 'looking' | 'open' | 'not-looking';
   preferences: string[];
+  totalExperienceYears?: number;
 }
 
 export interface Capability {
@@ -14,6 +15,10 @@ export interface Capability {
   category: string;
   evidenceIds: string[];
   description: string;
+  strength?: number;
+  years?: number;
+  projectCount?: number;
+  qualityScore?: number;
 }
 
 export interface Evidence {
@@ -25,6 +30,8 @@ export interface Evidence {
   description: string;
   capabilities: string[];
   links?: string[];
+  durationYears?: number;
+  impactScore?: number;
 }
 
 export interface Boundaries {

@@ -1,8 +1,7 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/login/page": "app/login/page.js",
   "/converter/page": "app/converter/page.js",
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/graph/[id]/page": "app/graph/[id]/page.js",
   "/page": "app/page.js",
-  "/api/process-resume/route": "app/api/process-resume/route.js"
+  "/graph/page": "app/graph/page.js",
+  "/profile/page": "app/profile/page.js"
 }

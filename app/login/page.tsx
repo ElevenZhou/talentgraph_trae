@@ -67,15 +67,22 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
+        console.log('登录尝试:', { email, password })
         const result = await signIn('credentials', {
           email,
           password,
           redirect: false
         })
+        console.log('登录结果:', result)
         if (result?.error) {
+          console.error('登录失败:', result.error)
           setError('邮箱或密码错误')
-        } else {
+        } else if (result?.ok) {
+          console.log('登录成功，跳转到首页')
           router.push('/')
+        } else {
+          console.error('登录结果异常:', result)
+          setError('登录失败，请重试')
         }
       } else {
         const res = await fetch('/api/register', {
@@ -92,6 +99,7 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
+      console.error('登录异常:', err)
       setError('操作失败，请重试')
     } finally {
       setLoading(false)

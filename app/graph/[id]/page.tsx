@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { Globe, Bot, Code, Link2, Key, Copy, Check } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { Globe, Bot, Code, Link2, Key, Copy, Check, Loader2, AlertCircle } from 'lucide-react'
 import TalentGraphVisualization from '../../../components/TalentGraphVisualization'
 import { TalentGraphData } from '../../../types'
 
@@ -13,23 +14,24 @@ const demoTalent: TalentGraphData = {
     role: 'AI 产品经理',
     location: '北京',
     availability: 'open',
-    preferences: ['远程优先', 'AI 应用方向', '早期创业团队']
+    preferences: ['远程优先', 'AI 应用方向', '早期创业团队'],
+    totalExperienceYears: 6
   },
   capabilities: [
-    { id: 'cap-1', name: '需求分析', level: 'expert', category: '产品', evidenceIds: ['evi-1'], description: '5年B端产品需求分析经验' },
-    { id: 'cap-2', name: 'AI 产品设计', level: 'strong', category: '产品', evidenceIds: ['evi-1', 'evi-2'], description: 'RAG知识库、Agent工作流设计' },
-    { id: 'cap-3', name: 'Prompt工程', level: 'strong', category: '技术', evidenceIds: ['evi-2'], description: '复杂场景Prompt设计与调优' },
-    { id: 'cap-4', name: '用户研究', level: 'strong', category: '产品', evidenceIds: ['evi-3'], description: '深度访谈、可用性测试' },
-    { id: 'cap-5', name: '数据驱动', level: 'moderate', category: '分析', evidenceIds: ['evi-1'], description: '产品数据指标体系搭建' },
-    { id: 'cap-6', name: '跨团队协作', level: 'expert', category: '协作', evidenceIds: ['evi-1', 'evi-3'], description: '产研销多团队项目推进' },
-    { id: 'cap-7', name: '技术沟通', level: 'strong', category: '协作', evidenceIds: ['evi-2'], description: '与算法、研发高效对接' },
-    { id: 'cap-8', name: '项目管理', level: 'moderate', category: '管理', evidenceIds: ['evi-3'], description: '敏捷开发流程管理' }
+    { id: 'cap-1', name: '需求分析', level: 'expert', category: '产品', evidenceIds: ['evi-1'], description: '5年B端产品需求分析经验', strength: 85, years: 5, projectCount: 8, qualityScore: 9 },
+    { id: 'cap-2', name: 'AI 产品设计', level: 'strong', category: '产品', evidenceIds: ['evi-1', 'evi-2'], description: 'RAG知识库、Agent工作流设计', strength: 72, years: 3, projectCount: 5, qualityScore: 8 },
+    { id: 'cap-3', name: 'Prompt工程', level: 'strong', category: '技术', evidenceIds: ['evi-2'], description: '复杂场景Prompt设计与调优', strength: 68, years: 2, projectCount: 4, qualityScore: 7 },
+    { id: 'cap-4', name: '用户研究', level: 'strong', category: '产品', evidenceIds: ['evi-3'], description: '深度访谈、可用性测试', strength: 65, years: 4, projectCount: 6, qualityScore: 7 },
+    { id: 'cap-5', name: '数据驱动', level: 'moderate', category: '分析', evidenceIds: ['evi-1'], description: '产品数据指标体系搭建', strength: 45, years: 3, projectCount: 3, qualityScore: 6 },
+    { id: 'cap-6', name: '跨团队协作', level: 'expert', category: '协作', evidenceIds: ['evi-1', 'evi-3'], description: '产研销多团队项目推进', strength: 88, years: 6, projectCount: 12, qualityScore: 9 },
+    { id: 'cap-7', name: '技术沟通', level: 'strong', category: '协作', evidenceIds: ['evi-2'], description: '与算法、研发高效对接', strength: 58, years: 4, projectCount: 7, qualityScore: 7 },
+    { id: 'cap-8', name: '项目管理', level: 'moderate', category: '管理', evidenceIds: ['evi-3'], description: '敏捷开发流程管理', strength: 42, years: 3, projectCount: 5, qualityScore: 6 }
   ],
   evidence: [
-    { id: 'evi-1', type: 'company', title: '高级产品经理', organization: '某科技公司', period: '2021-至今', description: '负责企业知识库产品，从0到1搭建，DAU突破5万', capabilities: ['需求分析', '数据驱动', '跨团队协作'], links: [] },
-    { id: 'evi-2', type: 'project', title: 'AI 客服助手', organization: '内部项目', period: '2023', description: '设计基于LLM的智能客服系统，替代30%人工', capabilities: ['AI 产品设计', 'Prompt工程', '技术沟通'], links: [] },
-    { id: 'evi-3', type: 'company', title: '产品经理', organization: '某互联网公司', period: '2019-2021', description: '负责SaaS产品模块，用户留存提升25%', capabilities: ['用户研究', '跨团队协作', '项目管理'], links: [] },
-    { id: 'evi-4', type: 'education', title: '计算机硕士', organization: '北京大学', period: '2017-2019', description: '研究方向：人机交互', capabilities: [], links: [] }
+    { id: 'evi-1', type: 'company', title: '高级产品经理', organization: '某科技公司', period: '2021-至今', description: '负责企业知识库产品，从0到1搭建，DAU突破5万', capabilities: ['需求分析', '数据驱动', '跨团队协作'], links: [], durationYears: 3.5, impactScore: 9 },
+    { id: 'evi-2', type: 'project', title: 'AI 客服助手', organization: '内部项目', period: '2023', description: '设计基于LLM的智能客服系统，替代30%人工', capabilities: ['AI 产品设计', 'Prompt工程', '技术沟通'], links: [], durationYears: 0.5, impactScore: 8 },
+    { id: 'evi-3', type: 'company', title: '产品经理', organization: '某互联网公司', period: '2019-2021', description: '负责SaaS产品模块，用户留存提升25%', capabilities: ['用户研究', '跨团队协作', '项目管理'], links: [], durationYears: 2, impactScore: 7 },
+    { id: 'evi-4', type: 'education', title: '计算机硕士', organization: '北京大学', period: '2017-2019', description: '研究方向：人机交互', capabilities: [], links: [], durationYears: 2, impactScore: 6 }
   ],
   boundaries: {
     strong: ['0-1 AI应用产品设计', 'B端企业级产品', '产研团队协作'],
@@ -60,14 +62,94 @@ export default function GraphViewPage() {
   const { id } = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { data: session } = useSession()
   const [copied, setCopied] = useState(false)
+  const [talentData, setTalentData] = useState<TalentGraphData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   
   const view = searchParams?.get('view') || 'human'
-  const talent = id === 'demo' ? demoTalent : demoTalent
+
+  useEffect(() => {
+    if (id === 'demo') {
+      setTalentData(demoTalent)
+      return
+    }
+
+    const fetchTalentData = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const token = searchParams?.get('token')
+        const url = new URL(`/api/resumes/${id}`, window.location.origin)
+        if (token) {
+          url.searchParams.set('token', token)
+        }
+        const res = await fetch(url.toString())
+        const data = await res.json()
+        if (data.error) {
+          setError(data.error)
+        } else {
+          setTalentData(data.data)
+        }
+      } catch (err) {
+        setError('获取数据失败')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTalentData()
+  }, [id, searchParams])
+
+  // 如果没有登录且没有分享 token，显示登录提示
+  if (!session && !searchParams?.get('token') && id !== 'demo') {
+    return (
+      <div className="py-16 text-center">
+        <AlertCircle className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+        <h2 className="text-xl font-bold mb-4">请先登录</h2>
+        <p className="text-slate-400 mb-6">登录后才能查看人才图谱，或使用分享链接</p>
+        <button
+          onClick={() => router.push('/login')}
+          className="px-6 py-3 bg-primary-500 rounded-lg text-white hover:bg-primary-600 transition-colors"
+        >
+          立即登录
+        </button>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="py-16 text-center">
+        <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-primary-500" />
+        <p className="text-slate-400">正在加载人才图谱...</p>
+      </div>
+    )
+  }
+
+  if (error && !talentData) {
+    return (
+      <div className="py-16 text-center">
+        <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+        <h2 className="text-xl font-bold mb-2">加载失败</h2>
+        <p className="text-slate-400 mb-6">{error}</p>
+        <button
+          onClick={() => router.push('/converter')}
+          className="px-6 py-3 bg-primary-500 rounded-lg text-white hover:bg-primary-600 transition-colors"
+        >
+          上传简历生成图谱
+        </button>
+      </div>
+    )
+  }
+
+  const talent = talentData || demoTalent
 
   const copyShareLink = () => {
-    const url = window.location.href
-    navigator.clipboard.writeText(url)
+    const url = new URL(window.location.href)
+    url.searchParams.set('token', talent.agentMeta.accessToken)
+    navigator.clipboard.writeText(url.toString())
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

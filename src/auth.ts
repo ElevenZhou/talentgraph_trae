@@ -44,19 +44,19 @@ export default NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   callbacks: {
-    async jwt(token, user) {
+    async jwt({ token, user }) {
       if (user) {
-        token.sub = user.id
-        ;(token as any).role = (user as any).role
+        (token as any).userId = user.id
+        (token as any).role = (user as any).role
         logger.debug('Auth', `JWT token created for user: ${user.id}`)
       }
       return token
     },
-    async session(session, token) {
+    async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.sub
+        (session.user as any).id = (token as any).userId
         (session.user as any).role = (token as any).role
-        logger.debug('Auth', `Session updated`, { userId: token.sub, hasRole: !!(token as any).role })
+        logger.debug('Auth', `Session updated`, { userId: (token as any).userId, hasRole: !!(token as any).role })
       }
       return session
     }

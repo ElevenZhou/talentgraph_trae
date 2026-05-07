@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { hash } from 'bcrypt-ts'
+import { userDb } from '@/lib/db'
+import { randomUUID } from 'crypto'
 
 export async function POST(req: Request) {
   try {
@@ -13,24 +14,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '密码至少6位' }, { status: 400 })
     }
 
-    const passwordHash = await hash(password, 10)
-
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    const { error } = await supabase
-      .from('users')
-      .insert({ email, password_hash: passwordHash, name })
-
-    if (error) {
-      if (error.message.includes('duplicate')) {
-        return NextResponse.json({ error: '该邮箱已注册' }, { status: 409 })
-      }
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const existingUser = userDb.findByEmail(email)
+    if (existingUser) {
+      return NextResponse.json({ error: '该邮箱已注册' }, { status: 409 })
     }
+
+    const { getDb } = await import('@/lib/db')
+    const db = getDb()
+    
+    const stmt = db.prepare(
+      'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)'
+    )
+    stmt.run(randomUUID(), name, email, password, 'user')
 
     return NextResponse.json({ success: true })
   } catch (error) {
