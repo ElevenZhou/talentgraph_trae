@@ -47,7 +47,7 @@ export default NextAuth({
     async jwt({ token, user }) {
       if (user) {
         const u = user as any
-        (token as any).userId = String(u.id)
+        (token as any).userId = '' + u.id
         (token as any).role = u.role
         logger.debug('Auth', `JWT token created for user: ${u.id}`)
       }
