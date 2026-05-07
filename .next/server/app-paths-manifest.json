@@ -1,7 +1,3 @@
 {
-  "/converter/page": "app/converter/page.js",
-  "/graph/[id]/page": "app/graph/[id]/page.js",
-  "/page": "app/page.js",
-  "/graph/page": "app/graph/page.js",
-  "/profile/page": "app/profile/page.js"
+  "/login/page": "app/login/page.js"
 }
