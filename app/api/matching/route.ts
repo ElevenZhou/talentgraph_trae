@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { analyzeMatching, AIProvider } from '@/lib/aiService'
 import { logger } from '@/lib/logger'
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     logger.debug('Matching', '开始匹配分析')
 
