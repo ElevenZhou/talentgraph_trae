@@ -46,9 +46,10 @@ export default NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        (token as any).userId = user.id
-        (token as any).role = (user as any).role
-        logger.debug('Auth', `JWT token created for user: ${user.id}`)
+        const u = user as any
+        (token as any).userId = String(u.id)
+        (token as any).role = u.role
+        logger.debug('Auth', `JWT token created for user: ${u.id}`)
       }
       return token
     },
