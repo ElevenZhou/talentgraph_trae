@@ -1,12 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { Upload, FileText, Loader2, ArrowRight } from 'lucide-react'
+import { Upload, FileText, Loader2, ArrowRight, Sparkles, Brain, Network, Target, CheckCircle2, Circle } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs`
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url
+  ).href
+}
 
 interface TalentGraphData {
   id: string
@@ -60,6 +65,17 @@ interface TalentGraphData {
   createdAt: string
 }
 
+const MAX_RESUME_LENGTH = 5000
+
+const PROCESS_STEPS = [
+  { id: 'parse', name: '理解简历结构', icon: FileText, description: '正在阅读和解析简历内容' },
+  { id: 'extract', name: '提取关键信息', icon: Brain, description: '识别个人信息、教育背景、工作经历' },
+  { id: 'capability', name: '构建能力图谱', icon: Network, description: '分析技能树和能力关系' },
+  { id: 'evaluate', name: '评估能力边界', icon: Target, description: '判断擅长领域和待发展领域' },
+  { id: 'match', name: '生成匹配建议', icon: Sparkles, description: '分析项目匹配度和合作建议' },
+  { id: 'complete', name: '解析完成', icon: CheckCircle2, description: '人才图谱构建成功' },
+]
+
 export default function ConverterPage() {
   const router = useRouter()
   const { data: session } = useSession()
@@ -67,6 +83,9 @@ export default function ConverterPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
   const [talentData, setTalentData] = useState<TalentGraphData | null>(null)
+  const [currentStep, setCurrentStep] = useState(0)
+  
+  const isOverLimit = resumeText.length > MAX_RESUME_LENGTH
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -81,12 +100,38 @@ export default function ConverterPage() {
         const content = await page.getTextContent()
         fullText += content.items.map((item: any) => item.str).join(' ') + '\n'
       }
-      setResumeText(fullText)
+      setResumeText(fullText.slice(0, MAX_RESUME_LENGTH))
     } else {
       const text = await file.text()
-      setResumeText(text)
+      setResumeText(text.slice(0, MAX_RESUME_LENGTH))
     }
   }
+
+  useEffect(() => {
+    if (!isProcessing) {
+      setCurrentStep(0)
+      return
+    }
+
+    const stepDuration = [2000, 2500, 3000, 2000, 2000, 500]
+    let timeoutIds: NodeJS.Timeout[] = []
+
+    PROCESS_STEPS.forEach((step, index) => {
+      if (index === 0) {
+        setCurrentStep(0)
+      } else {
+        const delay = stepDuration.slice(0, index).reduce((a, b) => a + b, 0)
+        const timeoutId = setTimeout(() => {
+          setCurrentStep(index)
+        }, delay)
+        timeoutIds.push(timeoutId)
+      }
+    })
+
+    return () => {
+      timeoutIds.forEach(id => clearTimeout(id))
+    }
+  }, [isProcessing])
 
   const handleProcess = async () => {
     if (!session) {
@@ -96,6 +141,9 @@ export default function ConverterPage() {
 
     setIsProcessing(true)
     setError('')
+    setCurrentStep(0)
+
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     try {
       const res = await fetch('/api/process-resume', {
@@ -106,12 +154,16 @@ export default function ConverterPage() {
       const data = await res.json()
       if (data.error) {
         setError(data.error)
+        setIsProcessing(false)
       } else {
         setTalentData(data)
+        setCurrentStep(5)
+        setTimeout(() => {
+          setIsProcessing(false)
+        }, 800)
       }
     } catch (err) {
       setError('处理失败，请重试')
-    } finally {
       setIsProcessing(false)
     }
   }
@@ -167,14 +219,44 @@ export default function ConverterPage() {
           </div>
           <textarea
             value={resumeText}
-            onChange={(e) => setResumeText(e.target.value)}
+            onChange={(e) => setResumeText(e.target.value.slice(0, MAX_RESUME_LENGTH))}
             placeholder="在这里粘贴你的简历内容，或者上传 PDF 文件..."
-            className="w-full h-96 px-4 py-4 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-primary-500 focus:outline-none resize-none font-mono text-sm leading-relaxed"
+            className={`w-full h-96 px-4 py-4 rounded-xl bg-slate-800/50 border-2 focus:border-primary-500 focus:outline-none resize-none font-mono text-sm leading-relaxed transition-colors ${
+              isOverLimit ? 'border-red-500 bg-red-500/5' : resumeText.length > MAX_RESUME_LENGTH * 0.8 ? 'border-yellow-500/50' : 'border-slate-700'
+            }`}
           />
+          {isOverLimit && (
+            <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2 animate-pulse">
+              <span className="text-lg">⚠️</span>
+              <span><strong>内容超出限制！</strong> 请精简简历内容后再提交，当前超出 <strong>{resumeText.length - MAX_RESUME_LENGTH}</strong> 字</span>
+            </div>
+          )}
+          <div className={`mt-2 text-sm flex items-center justify-between ${
+            isOverLimit ? 'text-red-400' : resumeText.length > MAX_RESUME_LENGTH * 0.8 ? 'text-yellow-400' : 'text-slate-500'
+          }`}>
+            <span>
+              {isOverLimit ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-red-400">⚠️</span>
+                  内容超出限制，请精简简历内容
+                </span>
+              ) : resumeText.length > MAX_RESUME_LENGTH * 0.8 ? (
+                <span className="flex items-center gap-1">
+                  <span className="text-yellow-400">⚡</span>
+                  即将达到字数上限
+                </span>
+              ) : (
+                '建议简历内容控制在 2000-3000 字以内'
+              )}
+            </span>
+            <span>
+              {resumeText.length} / {MAX_RESUME_LENGTH} 字
+            </span>
+          </div>
 
           <button
             onClick={handleProcess}
-            disabled={!resumeText.trim() || isProcessing}
+            disabled={!resumeText.trim() || isProcessing || resumeText.length > MAX_RESUME_LENGTH}
             className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-accent-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all flex items-center justify-center gap-2"
           >
             {isProcessing ? (
@@ -199,7 +281,92 @@ export default function ConverterPage() {
             🧠 AI 结构化结果
           </label>
 
-          {talentData ? (
+          {isProcessing && (
+            <div className="h-96 rounded-xl bg-slate-800/50 border border-slate-700 p-6 overflow-hidden">
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-slate-400">AI 解析进度</span>
+                  <span className="text-sm text-primary-400">
+                    {Math.round(((currentStep + 1) / PROCESS_STEPS.length) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-primary-500 to-accent-500 transition-all duration-500 ease-out"
+                    style={{ width: `${((currentStep + 1) / PROCESS_STEPS.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {PROCESS_STEPS.map((step, index) => {
+                  const Icon = step.icon
+                  const isActive = index === currentStep
+                  const isCompleted = index < currentStep
+                  const isPending = index > currentStep
+
+                  return (
+                    <div
+                      key={step.id}
+                      className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-300 ${
+                        isActive 
+                          ? 'bg-primary-500/10 border border-primary-500/30 scale-[1.02]' 
+                          : isCompleted 
+                          ? 'bg-green-500/5 border border-green-500/20' 
+                          : 'bg-slate-800/30 border border-slate-700/50'
+                      }`}
+                    >
+                      <div className={`relative ${
+                        isActive 
+                          ? 'text-primary-400' 
+                          : isCompleted 
+                          ? 'text-green-400' 
+                          : 'text-slate-500'
+                      }`}>
+                        {isCompleted ? (
+                          <CheckCircle2 className="w-6 h-6" />
+                        ) : isActive ? (
+                          <div className="relative">
+                            <Icon className="w-6 h-6 animate-pulse" />
+                            <div className="absolute inset-0 animate-ping opacity-30">
+                              <Icon className="w-6 h-6" />
+                            </div>
+                          </div>
+                        ) : (
+                          <Circle className="w-6 h-6" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className={`font-medium ${
+                          isActive 
+                            ? 'text-primary-400' 
+                            : isCompleted 
+                            ? 'text-green-400' 
+                            : 'text-slate-500'
+                        }`}>
+                          {step.name}
+                        </div>
+                        <div className={`text-sm ${
+                          isActive ? 'text-slate-300 animate-pulse' : 'text-slate-500'
+                        }`}>
+                          {isActive ? step.description : isCompleted ? '已完成 ✓' : '等待中...'}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="mt-6 p-4 rounded-lg bg-slate-900/50 border border-slate-700">
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Brain className="w-4 h-4 animate-pulse text-primary-400" />
+                  <span>AI 正在深度理解你的简历内容，构建个性化能力图谱...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {talentData && !isProcessing ? (
             <div className="h-96 overflow-auto rounded-xl bg-slate-800/50 border border-slate-700 p-4">
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-600">
@@ -241,7 +408,9 @@ export default function ConverterPage() {
                 </div>
               </div>
             </div>
-          ) : (
+          ) : null}
+
+          {!talentData && !isProcessing && (
             <div className="h-96 rounded-xl bg-slate-800/50 border border-slate-700 border-dashed flex items-center justify-center">
               <div className="text-center text-slate-500">
                 <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />

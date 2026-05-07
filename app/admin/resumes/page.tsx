@@ -2,7 +2,7 @@
 
 import AdminLayout from '@/components/AdminLayout'
 import { Search, Eye, Check, X, Clock, User } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Resume {
   id: string
@@ -10,25 +10,35 @@ interface Resume {
   userEmail: string
   identityName: string
   status: 'pending' | 'approved' | 'rejected'
-  aiProvider: 'deepseek' | 'openai'
+  aiProvider: string
   createdAt: string
 }
-
-const mockResumes: Resume[] = [
-  { id: '1', userName: '张三', userEmail: 'zhangsan@example.com', identityName: '前端开发工程师', status: 'approved', aiProvider: 'deepseek', createdAt: '2024-01-15 10:30' },
-  { id: '2', userName: '李四', userEmail: 'lisi@example.com', identityName: '产品经理', status: 'pending', aiProvider: 'deepseek', createdAt: '2024-01-15 09:20' },
-  { id: '3', userName: '王五', userEmail: 'wangwu@example.com', identityName: '后端架构师', status: 'approved', aiProvider: 'openai', createdAt: '2024-01-14 16:45' },
-  { id: '4', userName: '赵六', userEmail: 'zhaoliu@example.com', identityName: 'UI设计师', status: 'rejected', aiProvider: 'deepseek', createdAt: '2024-01-14 14:10' },
-  { id: '5', userName: '钱七', userEmail: 'qianqi@example.com', identityName: '数据分析师', status: 'pending', aiProvider: 'openai', createdAt: '2024-01-13 11:00' },
-]
 
 export default function ResumesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [resumes, setResumes] = useState<Resume[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filteredResumes = mockResumes.filter(resume => {
+  useEffect(() => {
+    fetchResumes()
+  }, [])
+
+  const fetchResumes = async () => {
+    try {
+      const res = await fetch('/api/admin/resumes')
+      const data = await res.json()
+      setResumes(data.resumes || [])
+    } catch (error) {
+      console.error('Failed to fetch resumes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredResumes = resumes.filter(resume => {
     const matchesSearch = resume.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resume.identityName.toLowerCase().includes(searchTerm.toLowerCase())
+      (resume.identityName || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = filterStatus === 'all' || resume.status === filterStatus
     return matchesSearch && matchesStatus
   })
@@ -51,7 +61,6 @@ export default function ResumesPage() {
         <p className="text-gray-500 mt-1">审核和管理用户提交的简历</p>
       </div>
 
-      {/* 搜索和筛选 */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -77,7 +86,6 @@ export default function ResumesPage() {
         </div>
       </div>
 
-      {/* 简历列表 */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-100">
@@ -91,74 +99,66 @@ export default function ResumesPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredResumes.map((resume) => {
-              const statusInfo = getStatusInfo(resume.status)
-              const StatusIcon = statusInfo.icon
-              return (
-                <tr key={resume.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
-                        {resume.userName.charAt(0)}
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">加载中...</td>
+              </tr>
+            ) : filteredResumes.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">暂无简历数据</td>
+              </tr>
+            ) : (
+              filteredResumes.map((resume) => {
+                const statusInfo = getStatusInfo(resume.status)
+                const StatusIcon = statusInfo.icon
+                return (
+                  <tr key={resume.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {resume.userName.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800 flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            {resume.userName}
+                          </p>
+                          <p className="text-sm text-gray-500">{resume.userEmail}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-800 flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          {resume.userName}
-                        </p>
-                        <p className="text-sm text-gray-500">{resume.userEmail}</p>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-800">{resume.identityName || '未命名'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        resume.aiProvider === 'deepseek' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {resume.aiProvider === 'deepseek' ? 'DeepSeek' : 'OpenAI'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${statusInfo.color}`}>
+                        <StatusIcon className="w-3 h-3" />
+                        {statusInfo.label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">{resume.createdAt}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <Eye className="w-4 h-4 inline mr-1" />
+                          查看
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-800">{resume.identityName}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      resume.aiProvider === 'deepseek' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
-                    }`}>
-                      {resume.aiProvider === 'deepseek' ? 'DeepSeek' : 'OpenAI'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${statusInfo.color}`}>
-                      <StatusIcon className="w-3 h-3" />
-                      {statusInfo.label}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{resume.createdAt}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                        <Eye className="w-4 h-4 inline mr-1" />
-                        查看
-                      </button>
-                      {resume.status === 'pending' && (
-                        <>
-                          <button className="px-3 py-1 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                            <Check className="w-4 h-4 inline mr-1" />
-                            通过
-                          </button>
-                          <button className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <X className="w-4 h-4 inline mr-1" />
-                            拒绝
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
+                    </td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
 
-        {/* 分页 */}
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
           <p className="text-sm text-gray-500">共 {filteredResumes.length} 条记录</p>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50">上一页</button>
-            <button className="px-3 py-1 text-sm bg-blue-500 text-white rounded">1</button>
-            <button className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50">下一页</button>
-          </div>
         </div>
       </div>
     </AdminLayout>

@@ -2,7 +2,7 @@
 
 import AdminLayout from '@/components/AdminLayout'
 import { Search, Filter, MoreVertical, Mail, Calendar } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface User {
   id: string
@@ -14,19 +14,29 @@ interface User {
   resumeCount: number
 }
 
-const mockUsers: User[] = [
-  { id: '1', name: '张三', email: 'zhangsan@example.com', role: 'user', status: 'active', createdAt: '2024-01-15', resumeCount: 3 },
-  { id: '2', name: '李四', email: 'lisi@example.com', role: 'admin', status: 'active', createdAt: '2024-01-10', resumeCount: 5 },
-  { id: '3', name: '王五', email: 'wangwu@example.com', role: 'user', status: 'inactive', createdAt: '2024-01-08', resumeCount: 1 },
-  { id: '4', name: '赵六', email: 'zhaoliu@example.com', role: 'user', status: 'active', createdAt: '2024-01-05', resumeCount: 2 },
-  { id: '5', name: '钱七', email: 'qianqi@example.com', role: 'user', status: 'active', createdAt: '2024-01-03', resumeCount: 4 },
-]
-
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const filteredUsers = mockUsers.filter(user => {
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/admin/users')
+      const data = await res.json()
+      setUsers(data.users || [])
+    } catch (error) {
+      console.error('Failed to fetch users:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === 'all' || user.role === filterRole
@@ -82,7 +92,16 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((user) => (
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">加载中...</td>
+              </tr>
+            ) : filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">暂无用户数据</td>
+              </tr>
+            ) : (
+              filteredUsers.map((user) => (
               <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
@@ -128,7 +147,8 @@ export default function UsersPage() {
                   </button>
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
 
