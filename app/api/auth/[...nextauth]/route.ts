@@ -2,7 +2,6 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { userDb } from "@/lib/db"
 
-// @ts-expect-error - NextAuth 类型扩展
 const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
@@ -47,9 +46,7 @@ const handler = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        // @ts-expect-error - 扩展 session.user 属性
         session.user.id = token.userId
-        // @ts-expect-error - 扩展 session.user 属性
         session.user.role = token.role
       }
       return session
