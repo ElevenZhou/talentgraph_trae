@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import path from 'path'
 import { existsSync, mkdirSync } from 'fs'
+import { hashSync } from 'bcrypt-ts'
 
 const DB_DIR = path.join(process.cwd(), 'data')
 const DB_PATH = path.join(DB_DIR, 'talentgraph.db')
@@ -62,20 +63,20 @@ function initSchema(database: Database.Database) {
     `)
     
     const testUsers = [
-      ['test-user-001', '张伟', 'test@talentgraph.com', 'test123', 'user'],
-      ['admin-user-001', '管理员', 'admin@talentgraph.com', 'admin123', 'admin'],
-      ['test-user-002', '李明', 'user01@talentgraph.com', '123456', 'user'],
-      ['test-user-003', '王芳', 'user02@talentgraph.com', '123456', 'user'],
-      ['test-user-004', '刘洋', 'user03@talentgraph.com', '123456', 'user'],
-      ['test-user-005', '陈静', 'user04@talentgraph.com', '123456', 'user'],
-      ['test-user-006', '杨帆', 'user05@talentgraph.com', '123456', 'user'],
-      ['test-user-007', '赵磊', 'user06@talentgraph.com', '123456', 'user'],
-      ['test-user-008', '周婷', 'user07@talentgraph.com', '123456', 'user'],
-      ['test-user-009', '吴强', 'user08@talentgraph.com', '123456', 'user'],
-      ['test-user-010', '郑琳', 'user09@talentgraph.com', '123456', 'user'],
-      ['test-user-011', '孙浩', 'user10@talentgraph.com', '123456', 'user'],
-      ['test-user-012', '测试用户1', 'test01@talentgraph.com', '123456', 'user'],
-      ['test-user-013', '测试用户2', 'test02@talentgraph.com', '123456', 'user'],
+      ['test-user-001', '张伟', 'test@talentgraph.com', hashSync('test123', 10), 'user'],
+      ['admin-user-001', '管理员', 'admin@talentgraph.com', hashSync('admin123', 10), 'admin'],
+      ['test-user-002', '李明', 'user01@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-003', '王芳', 'user02@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-004', '刘洋', 'user03@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-005', '陈静', 'user04@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-006', '杨帆', 'user05@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-007', '赵磊', 'user06@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-008', '周婷', 'user07@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-009', '吴强', 'user08@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-010', '郑琳', 'user09@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-011', '孙浩', 'user10@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-012', '测试用户1', 'test01@talentgraph.com', hashSync('123456', 10), 'user'],
+      ['test-user-013', '测试用户2', 'test02@talentgraph.com', hashSync('123456', 10), 'user'],
     ]
 
     for (const user of testUsers) {

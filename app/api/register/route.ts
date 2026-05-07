@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { userDb } from '@/lib/db'
 import { randomUUID } from 'crypto'
+import { hash } from 'bcrypt-ts'
 
 export async function POST(req: Request) {
   try {
@@ -19,13 +20,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: '该邮箱已注册' }, { status: 409 })
     }
 
+    const hashedPassword = await hash(password, 10)
+
     const { getDb } = await import('@/lib/db')
     const db = getDb()
     
     const stmt = db.prepare(
       'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)'
     )
-    stmt.run(randomUUID(), name, email, password, 'user')
+    stmt.run(randomUUID(), name, email, hashedPassword, 'user')
 
     return NextResponse.json({ success: true })
   } catch (error) {

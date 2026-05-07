@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { userDb } from "@/lib/db"
 import { logger } from "@/lib/logger"
+import { compare } from "bcrypt-ts"
 
 export default NextAuth({
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -26,7 +27,8 @@ export default NextAuth({
           return null
         }
 
-        if (user.password === credentials.password) {
+        const isValid = await compare(credentials.password, user.password)
+        if (isValid) {
           logger.info('Auth', `用户登录成功: ${user.email}`, { userId: user.id, role: user.role })
           return {
             id: user.id,
