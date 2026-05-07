@@ -26,7 +26,6 @@ const handler = NextAuth({
             id: user.id,
             name: user.name,
             email: user.email,
-            // @ts-expect-error - 扩展 User 类型
             role: user.role
           }
         }
