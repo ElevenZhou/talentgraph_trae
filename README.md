@@ -101,6 +101,63 @@ npm run build
 npm start
 ```
 
+## 🖥️ 服务器部署
+
+### 一键部署脚本
+
+```bash
+# 1. 安装 Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs build-essential
+
+# 2. 安装 PM2
+sudo npm install -g pm2
+
+# 3. 克隆项目（国内服务器用镜像）
+git clone https://ghfast.top/https://github.com/YOUR_REPO.git talentgraph
+cd talentgraph
+
+# 4. 安装依赖和类型声明
+npm install
+npm install --save-dev @types/better-sqlite3
+
+# 5. 配置环境变量
+cat > .env << 'EOF'
+NEXTAUTH_URL=http://YOUR_SERVER_IP:3000
+NEXTAUTH_SECRET=your-secret-key
+DEEPSEEK_API_KEY=your-deepseek-api-key
+EOF
+
+# 6. 构建并启动
+npm run build
+pm2 start npm --name talentgraph -- start
+pm2 save
+
+# 7. 开放防火墙端口
+sudo ufw allow 3000/tcp
+# 或腾讯云/阿里云控制台安全组放行 3000 端口
+```
+
+### 部署常见问题
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| GitHub clone 超时 | 国内网络限制 | 使用镜像 `https://ghfast.top/https://github.com/...` |
+| `trustHost` 属性报错 | NextAuth v4 不支持此属性 | 移除 `trustHost: true` 配置 |
+| `Property 'role' does not exist on type 'User'` | NextAuth 默认 User 类型无 role | 使用 `(user as any).role` 绕过 |
+| `Request is not assignable to NextRequest` | App Router route handler 类型要求 | 所有 route.ts 用 `NextRequest` 替代 `Request` |
+| `Cannot find module 'better-sqlite3'` | 缺少类型声明 | `npm i -D @types/better-sqlite3` |
+| pdfjs-dist 构建失败 | worker 文件太大 SWC 无法解析 | 改用 CDN 加载 worker |
+
+### 部署检查清单
+
+- [ ] Node.js 18+ 已安装
+- [ ] PM2 已安装并配置开机自启
+- [ ] `.env` 文件已创建，`NEXTAUTH_URL` 指向正确的服务器地址
+- [ ] 防火墙/安全组已放行 3000 端口
+- [ ] `npm run build` 构建成功
+- [ ] PM2 进程运行正常 (`pm2 status`)
+
 ## 🔌 API 接口
 
 ### 简历相关
